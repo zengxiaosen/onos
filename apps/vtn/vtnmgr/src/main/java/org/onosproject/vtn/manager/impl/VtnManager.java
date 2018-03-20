@@ -350,6 +350,7 @@ public class VtnManager implements VtnService {
                 .withSerializer(Serializer.using(Arrays.asList(KryoNamespaces.API)))
                 .build();
 
+        //数据包处理服务
         packetService.addProcessor(l3PacketProcessor, PacketProcessor.director(0));
         log.info("Started");
     }
@@ -369,11 +370,12 @@ public class VtnManager implements VtnService {
             return;
         }
         String localIpAddress = controllerDevice.annotations()
-                .value(CONTROLLER_IP_KEY);
+                .value(CONTROLLER_IP_KEY);//key:ipaddress
         IpAddress localIp = IpAddress.valueOf(localIpAddress);
         DeviceId controllerDeviceId = controllerDevice.id();
+        //驱动handler
         DriverHandler handler = driverService.createHandler(controllerDeviceId);
-        if (mastershipService.isLocalMaster(controllerDeviceId)) {
+        if (mastershipService.isLocalMaster(controllerDeviceId)) {//如果该控制器是master节点
             // Get DataPathIdGenerator
             String ipaddress = controllerDevice.annotations().value("ipaddress");
             DataPathIdGenerator dpidGenerator = DataPathIdGenerator.builder()
@@ -381,19 +383,23 @@ public class VtnManager implements VtnService {
             DeviceId deviceId = dpidGenerator.getDeviceId();
             String dpid = dpidGenerator.getDpId();
             // Inject pipeline driver name
+            //注入流水线驱动名称
             BasicDeviceConfig config = configService.addConfig(deviceId,
                                                                BasicDeviceConfig.class);
-            config.driver(DRIVER_NAME);
+            config.driver(DRIVER_NAME);//"onosfw"
             configService.applyConfig(deviceId, BasicDeviceConfig.class, config.node());
             // Add Bridge
-            Versioned<String> exPortVersioned = exPortMap.get(EX_PORT_KEY);
+            //添加网桥,按照版本来,exPortMap为静态变量，有set函数。
+            Versioned<String> exPortVersioned = exPortMap.get(EX_PORT_KEY);//get("exPortKey")
             if (exPortVersioned != null) {
                 VtnConfig.applyBridgeConfig(handler, dpid, exPortVersioned.value());
                 log.info("A new ovs is created in node {}", localIp.toString());
             }
+            //我理解为，保存所有的建立tunnal的交换机的IP的map
             switchesOfController.put(localIp, true);
         }
         // Create tunnel in br-int on all controllers
+        //在所有的控制器上创建br-int的隧道,在內部的实现也是用VtnConfig
         programTunnelConfig(controllerDeviceId, localIp, handler);
     }
 
@@ -402,7 +408,7 @@ public class VtnManager implements VtnService {
         if (controllerDevice == null) {
             log.error("The device is null");
             return;
-        }
+        }switchesOfController
         String dstIp = controllerDevice.annotations().value(CONTROLLER_IP_KEY);
         IpAddress dstIpAddress = IpAddress.valueOf(dstIp);
         DeviceId controllerDeviceId = controllerDevice.id();
@@ -744,6 +750,7 @@ public class VtnManager implements VtnService {
                 });
     }
 
+    //设备监听器，监听控制器的链接
     private class InnerDeviceListener implements DeviceListener {
 
         @Override
