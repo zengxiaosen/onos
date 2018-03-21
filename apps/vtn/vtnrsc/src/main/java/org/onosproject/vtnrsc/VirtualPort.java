@@ -49,6 +49,7 @@ public interface VirtualPort {
 
     /**
      * Returns the network identifier.
+     * 返回租户网络的id
      *
      * @return tenantNetwork identifier
      */
@@ -56,7 +57,7 @@ public interface VirtualPort {
 
     /**
      * Returns the symbolic name for the virtualPort.
-     *
+     * 返回虚拟端口的符号名字
      * @return virtualPort name
      */
     String name();
@@ -64,6 +65,7 @@ public interface VirtualPort {
     /**
      * Returns the administrative status of the port,which is up(true) or
      * down(false).
+     * 返回端口的管理状态，up为true,down为假
      *
      * @return true if the administrative status of the port is up
      */
@@ -85,7 +87,7 @@ public interface VirtualPort {
 
     /**
      * Returns the port tenantId.
-     *
+     * 返回端口的租户id
      * @return port tenantId
      */
     TenantId tenantId();

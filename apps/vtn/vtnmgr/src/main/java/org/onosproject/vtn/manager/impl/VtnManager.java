@@ -179,7 +179,7 @@ public class VtnManager implements VtnService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected TenantNetworkService tenantNetworkService;
 
-    //虚拟端口服务
+    //虚拟端口服务，用来查询虚拟端口是否存在
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected VirtualPortService virtualPortService;
 
@@ -206,7 +206,7 @@ public class VtnManager implements VtnService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected FloatingIpService floatingIpService;
 
-    //路由接口服务
+    //路由接口服务，用于添加L3流规则
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected RouterInterfaceService routerInterfaceService;
 
@@ -227,7 +227,7 @@ public class VtnManager implements VtnService {
 
     private final HostListener hostListener = new InnerHostListener();
     private final DeviceListener deviceListener = new InnerDeviceListener();
-    //VTN资源监听器
+    //VTN资源监听器,监听OVS上的虚拟端口，添加在vtnRscService上
     private final VtnRscListener l3EventListener = new VtnL3EventListener();
 
     private static final String EX_PORT_KEY = "exPortKey";
@@ -274,6 +274,8 @@ public class VtnManager implements VtnService {
 
         deviceService.addListener(deviceListener);
         hostService.addListener(hostListener);
+
+        //给vtnRscService添加监听器
         vtnRscService.addListener(l3EventListener);
 
         KryoNamespace.Builder serializer = KryoNamespace.newBuilder()
@@ -355,6 +357,7 @@ public class VtnManager implements VtnService {
         log.info("Started");
     }
 
+    //组建删除时调用的方法，可以从这个方法中看到有一个类型的listener
     @Deactivate
     public void deactivate() {
         deviceService.removeListener(deviceListener);
@@ -396,11 +399,11 @@ public class VtnManager implements VtnService {
                 VtnConfig.applyBridgeConfig(handler, dpid, exPortVersioned.value());
                 log.info("A new ovs is created in node {}", localIp.toString());
             }
-            //我认为这个方法是
+            //将检测到的控制器添加到控制器map中
             switchesOfController.put(localIp, true);
         }
         // Create tunnel in br-int on all controllers
-        //在所有的控制器上创建br-int的隧道,在內部的实现也是用VtnConfig
+        //在控制器上创建或添加隧道,在內部的实现也是用VtnConfig
         programTunnelConfig(controllerDeviceId, localIp, handler);
     }
 
@@ -429,14 +432,16 @@ public class VtnManager implements VtnService {
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
-        // Create tunnel out flow rules，创建隧道的流规则
+        // Create tunnel out flow rules，添加隧道的流VTEP
         applyTunnelOut(device, Objective.Operation.ADD);
-        // apply L3 arp flows
+        // apply L3 arp flows，添加3层ARP的流规则
         Iterable<RouterInterface> interfaces = routerInterfaceService
                 .getRouterInterfaces();
         interfaces.forEach(routerInf -> {
+            //使用虚拟端口服务
             VirtualPort gwPort = virtualPortService.getPort(routerInf.portId());
             if (gwPort == null) {
+                //VtnData,来自vtn.util包，返回vPortStore这个Map中,key为routerInf.portId()的端口
                 gwPort = VtnData.getPort(vPortStore, routerInf.portId());
             }
             applyL3ArpFlows(device.id(), gwPort, Objective.Operation.ADD);
@@ -504,6 +509,7 @@ public class VtnManager implements VtnService {
         vPortStore.remove(virtualPortId);
     }
 
+    //在控制器上创建和添加隧道信息
     private void programTunnelConfig(DeviceId localDeviceId, IpAddress localIp,
                                      DriverHandler localHandler) {
         if (mastershipService.isLocalMaster(localDeviceId)) {
@@ -512,7 +518,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //应用隧道,Device是控制器，操作类型是ADD
+    //添加隧道VTEP,Device是控制器，操作类型是ADD
     private void applyTunnelOut(Device device, Objective.Operation type) {
         String controllerIp = VtnData.getControllerIpOfSwitch(device);
         if (controllerIp == null) {
@@ -527,9 +533,10 @@ public class VtnManager implements VtnService {
             return;
         }
         if (type == Objective.Operation.ADD) {
-            // Save external port
+            // Save external port,保存外部端口
             Port export = getExPort(device.id());
             if (export != null) {
+                //分类服务，组装出端口Arp Classifier表规则
                 classifierService.programExportPortArpClassifierRules(export,
                                                                       device.id(),
                                                                       type);
@@ -545,7 +552,7 @@ public class VtnManager implements VtnService {
         DriverHandler handler = driverService.createHandler(localControllerId);
         Set<PortNumber> ports = VtnConfig.getPortNumbers(handler);
         Iterable<Host> allHosts = hostService.getHosts();
-        String tunnelName = "vxlan-" + DEFAULT_IP;
+        String tunnelName = "vxlan-" + DEFAULT_IP;//0.0.0.0
         if (allHosts != null) {
             Sets.newHashSet(allHosts).forEach(host -> {
                 MacAddress hostMac = host.mac();
@@ -582,7 +589,9 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //为服务功能转发或者分类Ovs映射增加特定的设备标识
     private void programSffAndClassifierHost(Host host, Objective.Operation type) {
+        //host.location()返回主机连接到网络边缘的最新主机位置。
         DeviceId deviceId = host.location().deviceId();
         String ifaceId = host.annotations().value(IFACEID);
         VirtualPortId virtualPortId = VirtualPortId.portId(ifaceId);
@@ -753,7 +762,7 @@ public class VtnManager implements VtnService {
                 });
     }
 
-    //设备监听器，监听控制器的链接
+    //设备监听器，监听控制器和交换机的链接以及断开
     private class InnerDeviceListener implements DeviceListener {
 
         @Override
@@ -877,6 +886,7 @@ public class VtnManager implements VtnService {
 
     }
 
+    //检测道路由器端口后调用的函数，由上面定义的私有类VtnL3EventListener调用，该类实现了VtnRscListener
     @Override
     public void onRouterInterfaceDetected(VtnRscEventFeedback l3Feedback) {
         Objective.Operation operation = Objective.Operation.ADD;
@@ -1003,17 +1013,24 @@ public class VtnManager implements VtnService {
         });
     }
 
+    //应用L3Arp流
     private void applyL3ArpFlows(DeviceId deviceId, VirtualPort gwPort,
                                  Objective.Operation operation) {
         IpAddress ip = null;
+        //fixedIp,ip地址和子网id的封装。gwPort.fixedIps()返回fixedIp集合
         Iterator<FixedIp> gwIps = gwPort.fixedIps().iterator();
+        //遍历到最后一个IP
         if (gwIps.hasNext()) {
             ip = gwIps.next().ip();
         }
+        //得到网关的IP
         IpAddress gwIp = ip;
+        //返回虚拟端口的mac地址
         MacAddress gwMac = gwPort.macAddress();
+        //根据网关的端口的网络id，通过租户网络服务，来得到租户网络
         TenantNetwork network = tenantNetworkService
                 .getNetwork(gwPort.networkId());
+
         if (deviceId != null) {
             // Arp rules
             DriverHandler handler = driverService.createHandler(deviceId);

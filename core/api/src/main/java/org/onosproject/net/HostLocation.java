@@ -20,6 +20,7 @@ import static org.onosproject.net.PortNumber.P0;
 /**
  * Representation of a network edge location where an end-station host is
  * connected.
+ * 表示终端站主机连接的网络边缘位置。
  */
 public class HostLocation extends ConnectPoint {
 

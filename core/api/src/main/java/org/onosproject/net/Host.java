@@ -58,6 +58,7 @@ public interface Host extends Element {
     /**
      * Returns the most recent host location where the host attaches to the
      * network edge.
+     * 返回主机连接到网络边缘的最新主机位置。
      *
      * @return the most recent host location
      */

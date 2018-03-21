@@ -21,7 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * The class representing an ifaceid.
- * This class is immutable.
+ * This class is immutable.不可变的
  */
 public class OvsdbIfaceId extends Identifier<String> {
     /**

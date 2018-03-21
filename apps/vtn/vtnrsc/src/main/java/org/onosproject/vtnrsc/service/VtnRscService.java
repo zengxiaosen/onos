@@ -93,6 +93,7 @@ public interface VtnRscService extends ListenerService<VtnRscEvent, VtnRscListen
     /**
      * Adds specify Device identifier to Service Function Forward OvsMap
      * or Classifier OvsMap.
+     * 为服务功能转发或者分类Ovs映射增加特定的设备标识
      *
      * @param virtualPortId the VirtualPort identifier
      * @param tenantId the tenant identifier
