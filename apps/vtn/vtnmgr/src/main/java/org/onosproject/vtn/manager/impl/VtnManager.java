@@ -363,6 +363,7 @@ public class VtnManager implements VtnService {
         log.info("Stopped");
     }
 
+    //该方法被下面的内部类InnerDeviceListener类实现DeviceListener的方法event方法调用，使用device服务
     @Override
     public void onControllerDetected(Device controllerDevice) {
         if (controllerDevice == null) {
@@ -395,7 +396,7 @@ public class VtnManager implements VtnService {
                 VtnConfig.applyBridgeConfig(handler, dpid, exPortVersioned.value());
                 log.info("A new ovs is created in node {}", localIp.toString());
             }
-            //我理解为，保存所有的建立tunnal的交换机的IP的map
+            //我认为这个方法是
             switchesOfController.put(localIp, true);
         }
         // Create tunnel in br-int on all controllers
@@ -403,12 +404,13 @@ public class VtnManager implements VtnService {
         programTunnelConfig(controllerDeviceId, localIp, handler);
     }
 
+    //如果控制器消失
     @Override
     public void onControllerVanished(Device controllerDevice) {
         if (controllerDevice == null) {
             log.error("The device is null");
             return;
-        }switchesOfController
+        }
         String dstIp = controllerDevice.annotations().value(CONTROLLER_IP_KEY);
         IpAddress dstIpAddress = IpAddress.valueOf(dstIp);
         DeviceId controllerDeviceId = controllerDevice.id();
@@ -417,6 +419,7 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //如果控制器检测到了交换机
     @Override
     public void onOvsDetected(Device device) {
         if (device == null) {
@@ -426,7 +429,7 @@ public class VtnManager implements VtnService {
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
-        // Create tunnel out flow rules
+        // Create tunnel out flow rules，创建隧道的流规则
         applyTunnelOut(device, Objective.Operation.ADD);
         // apply L3 arp flows
         Iterable<RouterInterface> interfaces = routerInterfaceService
@@ -509,7 +512,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //应用隧道Out
+    //应用隧道,Device是控制器，操作类型是ADD
     private void applyTunnelOut(Device device, Objective.Operation type) {
         String controllerIp = VtnData.getControllerIpOfSwitch(device);
         if (controllerIp == null) {
