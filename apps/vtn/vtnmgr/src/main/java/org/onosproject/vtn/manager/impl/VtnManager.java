@@ -206,7 +206,7 @@ public class VtnManager implements VtnService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected FloatingIpService floatingIpService;
 
-    //路由接口服务，用于添加L3流规则
+    //路由接口服务，用于与Router接口的库存/清单进行交互的服务。
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected RouterInterfaceService routerInterfaceService;
 
@@ -250,7 +250,7 @@ public class VtnManager implements VtnService {
     private static final byte[] ZERO_MAC_ADDRESS = MacAddress.ZERO.toBytes();
 
     private EventuallyConsistentMap<VirtualPortId, VirtualPort> vPortStore;
-    private EventuallyConsistentMap<IpAddress, Boolean> switchesOfController;
+    private EventuallyConsistentMap<IpAddress, Boolean> switchesOfController;//存储Master控制器的IP地址
     private EventuallyConsistentMap<DeviceId, NetworkOfLocalHostPorts> switchOfLocalHostPorts;
     private EventuallyConsistentMap<SubnetId, Map<HostId, Host>> hostsOfSubnet;
     private EventuallyConsistentMap<TenantRouter, Boolean> routerInfFlagOfTenantRouter;
@@ -366,7 +366,8 @@ public class VtnManager implements VtnService {
         log.info("Stopped");
     }
 
-    //该方法被下面的内部类InnerDeviceListener类实现DeviceListener的方法event方法调用，使用device服务
+    //该方法被下面的内部类InnerDeviceListener类实现DeviceListener的方法event方法调用，
+    // 使用deviceEvent事件触发，如果本控制器检测到了其他的控制器
     @Override
     public void onControllerDetected(Device controllerDevice) {
         if (controllerDevice == null) {
@@ -380,10 +381,12 @@ public class VtnManager implements VtnService {
         //驱动handler
         DriverHandler handler = driverService.createHandler(controllerDeviceId);
         if (mastershipService.isLocalMaster(controllerDeviceId)) {//如果该控制器是master节点
-            // Get DataPathIdGenerator
+
+            // Get DataPathIdGenerator,给master控制器设置datapathId生成器
             String ipaddress = controllerDevice.annotations().value("ipaddress");
             DataPathIdGenerator dpidGenerator = DataPathIdGenerator.builder()
                                             .addIpAddress(ipaddress).build();
+
             DeviceId deviceId = dpidGenerator.getDeviceId();
             String dpid = dpidGenerator.getDpId();
             // Inject pipeline driver name
@@ -391,6 +394,7 @@ public class VtnManager implements VtnService {
             BasicDeviceConfig config = configService.addConfig(deviceId,
                                                                BasicDeviceConfig.class);
             config.driver(DRIVER_NAME);//"onosfw"
+            //添加基本的配置
             configService.applyConfig(deviceId, BasicDeviceConfig.class, config.node());
             // Add Bridge
             //添加网桥,按照版本来,exPortMap为静态变量，有set函数。
@@ -403,11 +407,13 @@ public class VtnManager implements VtnService {
             switchesOfController.put(localIp, true);
         }
         // Create tunnel in br-int on all controllers
-        //在控制器上创建或添加隧道,在內部的实现也是用VtnConfig
+        //在控制器上创建或添加默认的隧道信息,在內部的实现也是用VtnConfig
         programTunnelConfig(controllerDeviceId, localIp, handler);
     }
 
-    //如果控制器消失
+    //该方法被下面的内部类InnerDeviceListener类实现DeviceListener的方法event方法调用，
+    // 使用deviceEvent事件触发
+    //当本控制器检测到其他控制器消失时，触发下面的函数
     @Override
     public void onControllerVanished(Device controllerDevice) {
         if (controllerDevice == null) {
@@ -417,18 +423,23 @@ public class VtnManager implements VtnService {
         String dstIp = controllerDevice.annotations().value(CONTROLLER_IP_KEY);
         IpAddress dstIpAddress = IpAddress.valueOf(dstIp);
         DeviceId controllerDeviceId = controllerDevice.id();
+        //从控制器map中移除该控制器。
         if (mastershipService.isLocalMaster(controllerDeviceId)) {
             switchesOfController.remove(dstIpAddress);
         }
     }
 
-    //如果控制器检测到了交换机
+    //该方法被下面的内部类InnerDeviceListener类实现DeviceListener的方法event方法调用，
+    // 使用deviceEvent事件触发
+    //当检测交换机时，触发下面的函数
+    //如果本控制器检测到了交换机
     @Override
     public void onOvsDetected(Device device) {
         if (device == null) {
             log.error("The device is null");
             return;
         }
+        //如果控制器不是master角色则返回
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
@@ -509,7 +520,7 @@ public class VtnManager implements VtnService {
         vPortStore.remove(virtualPortId);
     }
 
-    //在控制器上创建和添加隧道信息
+    //在控制器上创建和添加默认的隧道配置信息
     private void programTunnelConfig(DeviceId localDeviceId, IpAddress localIp,
                                      DriverHandler localHandler) {
         if (mastershipService.isLocalMaster(localDeviceId)) {
@@ -657,8 +668,10 @@ public class VtnManager implements VtnService {
             return;
         }
         SegmentationId segmentationId = network.segmentationId();
-        // Get all the tunnel PortNumber in the current node
+
+        // Get all the tunnel PortNumber in the current node,得到当前节点的所有隧道端口
         Iterable<Port> ports = deviceService.getPorts(deviceId);
+        //得到该设备的所有的vxlan端口号
         Collection<PortNumber> localTunnelPorts = VtnData.getLocalTunnelPorts(ports);
         // Get all the local vm's PortNumber in the current node
         Map<TenantNetworkId, Set<PortNumber>> localHostPorts = switchOfLocalHostPorts
@@ -762,7 +775,7 @@ public class VtnManager implements VtnService {
                 });
     }
 
-    //设备监听器，监听控制器和交换机的链接以及断开
+    //内部设备监听器，监听控制器和交换机的链接以及断开，device包括交换机和控制器，不包含host
     private class InnerDeviceListener implements DeviceListener {
 
         @Override
@@ -796,6 +809,7 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //内部主机监听器，监听主机的增加，删除和更新
     private class InnerHostListener implements HostListener {
 
         @Override
@@ -813,8 +827,9 @@ public class VtnManager implements VtnService {
 
     }
 
-    // Local Host Ports of Network.
+    // Local Host Ports of Network.本地主机端口的租户网络
     private class NetworkOfLocalHostPorts {
+        //PortNumber为交换机的端口号
         private final Map<TenantNetworkId, Set<PortNumber>> networkOfLocalHostPorts =
                                       new HashMap<TenantNetworkId, Set<PortNumber>>();
 
@@ -1650,16 +1665,21 @@ public class VtnManager implements VtnService {
         //根据floatIP拿到floatIP的网络ID，根据网络ID，使用租户网络服务拿到租户网络，exNetwork，拿到的是外部网络
         TenantNetwork exNetwork = tenantNetworkService
                 .getNetwork(floatingIp.networkId());
+
         //根据floatIP拿到floatIP的fixedIP
         IpAddress fixedIp = floatingIp.fixedIp();
+
         //根据floatIP,拿到floatIP的端口ID
         VirtualPortId vmPortId = floatingIp.portId();
+
         //根据虚拟端口ID，通过虚拟端口服务，拿到虚拟端口的实例，
         VirtualPort vmPort = virtualPortService.getPort(vmPortId);
 
+        //如果通过虚拟端口服务拿到的虚拟端口为空，
         if (vmPort == null) {
             vmPort = VtnData.getPort(vPortStore, vmPortId);
         }
+
         Subnet subnet = getSubnetOfFloatingIP(floatingIp);
         IpPrefix ipPrefix = subnet.cidr();
         IpAddress gwIp = subnet.gatewayIp();
