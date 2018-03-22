@@ -1628,6 +1628,7 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //下载SNAT流规则
     private boolean downloadSnatRules(DeviceId deviceId, MacAddress srcMac,
                                       IpAddress srcIp, MacAddress dstMac,
                                       IpAddress dstIp, FloatingIp floatingIp) {
@@ -1670,6 +1671,7 @@ public class VtnManager implements VtnService {
         return true;
     }
 
+    //移除SNAT(Source Network Address Translation)表(表40)中的流规则，
     private void removeRulesInSnat(DeviceId deviceId, IpAddress fixedIp) {
         for (FlowEntry f : flowRuleService.getFlowEntries(deviceId)) {
             if (f.tableId() == SNAT_TABLE
@@ -1679,8 +1681,12 @@ public class VtnManager implements VtnService {
                 int priority = f.priority();
                 if (srcIp != null && srcIp.contains(fixedIp.toString())) {
                     log.info("Match snat rules bob");
+                    //TrafficSelector,一条网络流量的抽象,表示流表项的匹配
                     TrafficSelector selector = f.selector();
-                    TrafficTreatment treatment = f.treatment();
+                    TrafficTreatment treatment = f.treatment();//表示流表项的动作
+                    // SnatService接口提供了SNAT表中的规则的操作，该规则是ovs pipeline的表（40）。
+                    // SNAT表示源网络地址转换，它是网络术语的首字母缩写。 处理上层的流
+                    //移除snat表中的规则
                     snatService.removeSnatRules(deviceId, selector, treatment,
                                                 priority,
                                                 Objective.Operation.REMOVE);
