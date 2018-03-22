@@ -886,7 +886,8 @@ public class VtnManager implements VtnService {
 
     }
 
-    //检测道路由器端口后调用的函数，由上面定义的私有类VtnL3EventListener调用，该类实现了VtnRscListener
+    //检测到路由器端口后调用的函数，由上面定义的私有类VtnL3EventListener调用，该类实现了VtnRscListener
+    //将将测到的
     @Override
     public void onRouterInterfaceDetected(VtnRscEventFeedback l3Feedback) {
         Objective.Operation operation = Objective.Operation.ADD;
@@ -948,30 +949,38 @@ public class VtnManager implements VtnService {
         programFloatingIpEvent(l3Feedback, VtnRscEvent.Type.FLOATINGIP_BIND);
     }
 
+    ////被内部类VtnL3EventListener实现的接口VtnRscListener调用，如果发生Float IP的消失事件则执行此函数
     @Override
     public void onFloatingIpVanished(VtnRscEventFeedback l3Feedback) {
         floatingIpStore.remove(l3Feedback.floatingIp().floatingIp());
         programFloatingIpEvent(l3Feedback, VtnRscEvent.Type.FLOATINGIP_UNBIND);
     }
 
+    //被内部类VtnL3EventListener实现的接口VtnRscListener调用，如果发生创建虚拟端口的事件则执行此函数
     public void onVirtualPortCreated(VtnRscEventFeedback l3Feedback) {
         VirtualPort vPort = l3Feedback.virtualPort();
+        //使用网络配置服务配置基本的主机
         BasicHostConfig basicHostConfig = networkConfigService.addConfig(HostId.hostId(vPort.macAddress()),
                                                                          BasicHostConfig.class);
         Set<IpAddress> ips = new HashSet<>();
+        //vPort.fixedIps()返回虚拟端口的IP地址和子网ID的集合。
         for (FixedIp fixedIp : vPort.fixedIps()) {
             ips.add(fixedIp.ip());
         }
+        //使用基本网络配置服务，配置主机的IP,
         basicHostConfig.setIps(ips).apply();
     }
-
+    //被内部类VtnL3EventListener实现的接口VtnRscListener调用，如果发生删除虚拟端口的事件则执行此函数
     public void onVirtualPortDeleted(VtnRscEventFeedback l3Feedback) {
         VirtualPort vPort = l3Feedback.virtualPort();
+        //根据虚拟端口的mac地址得到HostId,包含mac和Vlan Id
         HostId hostId = HostId.hostId(vPort.macAddress());
         BasicHostConfig basicHostConfig = networkConfigService.addConfig(hostId,
                                                                          BasicHostConfig.class);
+        //使用主机服务,根据hostId得到主机的IP地址的集合
         Set<IpAddress> oldIps = hostService.getHost(hostId).ipAddresses();
         // Copy to a new set as oldIps is unmodifiable set.
+        //旧的IP集合是不可修改的，因此拷贝到新的集合中去
         Set<IpAddress> newIps = new HashSet<>();
         newIps.addAll(oldIps);
         for (FixedIp fixedIp : vPort.fixedIps()) {
@@ -1132,11 +1141,17 @@ public class VtnManager implements VtnService {
                 });
     }
 
+    //检测到float ip后调用的函数，由上面定义的私有类VtnL3EventListener调用，该类实现了VtnRscListener
+    //在检测到FlaotIp变化之后，调用该函数
+    // 编排floatIp事件
     private void programFloatingIpEvent(VtnRscEventFeedback l3Feedback,
                                        VtnRscEvent.Type type) {
         FloatingIp floaingIp = l3Feedback.floatingIp();
+        //根据事件反馈拿到floatIP
         if (floaingIp != null) {
+            //根据float ip拿到端口ID,
             VirtualPortId vmPortId = floaingIp.portId();
+            //根据端口ID拿到虚拟端口的实例
             VirtualPort vmPort = virtualPortService.getPort(vmPortId);
             VirtualPort fipPort = virtualPortService
                     .getPort(floaingIp.networkId(), floaingIp.floatingIp());
@@ -1162,14 +1177,14 @@ public class VtnManager implements VtnService {
                 TenantRouter tenantRouter = TenantRouter
                         .tenantRouter(floaingIp.tenantId(), floaingIp.routerId());
                 SegmentationId l3vni = vtnRscService.getL3vni(tenantRouter);
-                // Floating ip BIND
+                // Floating ip BIND,绑定float ip
                 if (type == VtnRscEvent.Type.FLOATINGIP_BIND) {
                     vPortStore.put(fipPort.portId(), fipPort);
                     applyNorthSouthL3Flows(deviceId, false, tenantRouter, host,
                                            vmPort, fipPort, floaingIp, l3vni,
                                            exPort, Objective.Operation.ADD);
                 } else if (type == VtnRscEvent.Type.FLOATINGIP_UNBIND) {
-                    // Floating ip UNBIND
+                    // Floating ip UNBIND,解绑float,ip
                     applyNorthSouthL3Flows(deviceId, false, tenantRouter, host,
                                            vmPort, fipPort, floaingIp, l3vni,
                                            exPort,
@@ -1632,11 +1647,16 @@ public class VtnManager implements VtnService {
     private boolean downloadSnatRules(DeviceId deviceId, MacAddress srcMac,
                                       IpAddress srcIp, MacAddress dstMac,
                                       IpAddress dstIp, FloatingIp floatingIp) {
+        //根据floatIP拿到floatIP的网络ID，根据网络ID，使用租户网络服务拿到租户网络，exNetwork，拿到的是外部网络
         TenantNetwork exNetwork = tenantNetworkService
                 .getNetwork(floatingIp.networkId());
+        //根据floatIP拿到floatIP的fixedIP
         IpAddress fixedIp = floatingIp.fixedIp();
+        //根据floatIP,拿到floatIP的端口ID
         VirtualPortId vmPortId = floatingIp.portId();
+        //根据虚拟端口ID，通过虚拟端口服务，拿到虚拟端口的实例，
         VirtualPort vmPort = virtualPortService.getPort(vmPortId);
+
         if (vmPort == null) {
             vmPort = VtnData.getPort(vPortStore, vmPortId);
         }
@@ -1653,7 +1673,8 @@ public class VtnManager implements VtnService {
         TenantRouter tenantRouter = TenantRouter
                 .tenantRouter(floatingIp.tenantId(), floatingIp.routerId());
         SegmentationId l3vni = vtnRscService.getL3vni(tenantRouter);
-        // if the same ip segment
+
+        // if the same ip segment, 检查源目IP是否是同一个子网
         if (IpUtil.checkSameSegment(srcIp, dstIp, mask)) {
             snatService.programSnatSameSegmentRules(deviceId, l3vni, fixedIp,
                                                     dstIp, dstMac, srcMac,
