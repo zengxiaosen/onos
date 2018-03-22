@@ -30,11 +30,12 @@ import org.onosproject.vtnrsc.SegmentationId;
  * Handle the upward flows.
  * SnatService接口提供了SNAT表中的规则，该规则是ovs pipeline的表（40）。SNAT表示源网络地址转换，
  * 它是网络术语的首字母缩写。 处理上层的流。
+ * router修改返回的数据包，将其转发给真正的VM实例，这个行为被称为 Source NAT
  */
 public interface SnatService {
 
     /**
-     * Assemble the SNAT table rules.
+     * Assemble the SNAT table rules.组装SNAT表规则
      * Match: ipv4 type, vnid, destination ip and source ip.
      * Action: set eth_src, set eth_dst, set ip_src, set vnid and goto L2Forward Table(50).
      *
