@@ -95,7 +95,7 @@ public final class VtnData {
                 .filter(p -> !p.number().equals(PortNumber.LOCAL))
                 .forEach(p -> {
                     if (p.annotations().value(AnnotationKeys.PORT_NAME)
-                            .startsWith(PORT_HEAD)) {
+                            .startsWith(PORT_HEAD)) {//PORT_HEAD="vxlan"
                         localTunnelPorts.add(p.number());
                     }
                 });

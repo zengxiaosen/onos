@@ -35,6 +35,7 @@ import org.onosproject.net.driver.DriverHandler;
 
 /**
  * Applies configuration to the device.
+ * 设置设备的配置
  */
 public final class VtnConfig {
 

@@ -22,6 +22,7 @@ import org.onosproject.vtnrsc.SubnetId;
 
 /**
  * Service for interacting with the inventory of Router interface.
+ * 用于与Router接口的库存/清单进行交互的服务。
  */
 public interface RouterInterfaceService {
     /**

@@ -17,6 +17,8 @@ package org.onosproject.net.driver;
 
 /**
  * Representation of context for interacting with a device.
+ * 与设备交互的上下文表示。
+ *
  */
 public interface DriverHandler {
 
