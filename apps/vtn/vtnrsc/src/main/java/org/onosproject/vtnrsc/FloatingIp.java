@@ -19,11 +19,14 @@ import org.onlab.packet.IpAddress;
 
 /**
  * Representation of a floatingIp.
+ *
  */
 public interface FloatingIp {
 
     /**
      * Coarse classification of the type of the FloatingIp.
+     * 如果需要从外网直接访问虚拟机实例，可以使用floating IP,他提供静态的NAT功能
+     * 建立外网IP与实例租户网络IP的一对一映射，floating IP配置在router提供网关的外网接口上。
      */
     public enum Status {
         /**
