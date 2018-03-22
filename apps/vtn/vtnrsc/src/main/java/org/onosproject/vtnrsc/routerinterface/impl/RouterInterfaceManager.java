@@ -54,6 +54,7 @@ import com.google.common.collect.Sets;
 
 /**
  * Provides implementation of the Router interface service.
+ * Router interface接口的实现类
  */
 @Component(immediate = true)
 @Service
