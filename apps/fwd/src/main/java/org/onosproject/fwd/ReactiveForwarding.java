@@ -606,7 +606,7 @@ public class ReactiveForwarding {
 
     // Sends a packet out the specified port.从指定的端口发送数据包,由数据包的上下文发送数据包
     private void packetOut(PacketContext context, PortNumber portNumber, ReactiveForwardMetrics macMetrics) {
-        replyPacket(macMetrics);//只是一个简答的计数
+        replyPacket(macMetrics);//只是一个简单的计数
         context.treatmentBuilder().setOutput(portNumber);
         context.send();
     }
@@ -615,7 +615,7 @@ public class ReactiveForwarding {
     private void installRule(PacketContext context, PortNumber portNumber, ReactiveForwardMetrics macMetrics) {
         //
         // We don't support (yet) buffer IDs in the Flow Service so
-        // packet out first.我们先在还不支持流服务的缓存ID，所以，先转发出去
+        // packet out first.我们现在还不支持流服务的缓存ID，所以，先转发出去
         //
         Ethernet inPkt = context.inPacket().parsed();
         TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();

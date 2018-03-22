@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Represents a generalized match &amp; action pair to be applied to
  * an infrastructure device.
+ * 表示要应用于基础架构设备的广义匹配操作对。
  */
 public interface FlowEntry extends FlowRule {
 
