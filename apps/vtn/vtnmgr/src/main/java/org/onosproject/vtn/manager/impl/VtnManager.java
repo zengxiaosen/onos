@@ -163,6 +163,7 @@ public class VtnManager implements VtnService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected NetworkConfigService configService;
 
+    //用于与基础设施设备清单(库存)进行交互的服务。
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected DeviceService deviceService;
 
@@ -217,7 +218,7 @@ public class VtnManager implements VtnService {
     protected NetworkConfigService networkConfigService;
 
     private ApplicationId appId;
-    //分类器服务
+    //分类器服务,由vtn.table提供
     private ClassifierService classifierService;
     private L2ForwardService l2ForwardService;
     private ArpService arpService;
@@ -376,10 +377,15 @@ public class VtnManager implements VtnService {
         }
         String localIpAddress = controllerDevice.annotations()
                 .value(CONTROLLER_IP_KEY);//key:ipaddress
+
+        //控制器的IP地址
         IpAddress localIp = IpAddress.valueOf(localIpAddress);
+
         DeviceId controllerDeviceId = controllerDevice.id();
-        //驱动handler
+
+        //驱动handler,创建一个与特定设备交互的驱动管理器
         DriverHandler handler = driverService.createHandler(controllerDeviceId);
+
         if (mastershipService.isLocalMaster(controllerDeviceId)) {//如果该控制器是master节点
 
             // Get DataPathIdGenerator,给master控制器设置datapathId生成器
@@ -400,6 +406,7 @@ public class VtnManager implements VtnService {
             //添加网桥,按照版本来,exPortMap为静态变量，有set函数。
             Versioned<String> exPortVersioned = exPortMap.get(EX_PORT_KEY);//get("exPortKey")
             if (exPortVersioned != null) {
+                //在控制器上创建或更新bridge信息
                 VtnConfig.applyBridgeConfig(handler, dpid, exPortVersioned.value());
                 log.info("A new ovs is created in node {}", localIp.toString());
             }
@@ -422,6 +429,7 @@ public class VtnManager implements VtnService {
         }
         String dstIp = controllerDevice.annotations().value(CONTROLLER_IP_KEY);
         IpAddress dstIpAddress = IpAddress.valueOf(dstIp);
+
         DeviceId controllerDeviceId = controllerDevice.id();
         //从控制器map中移除该控制器。
         if (mastershipService.isLocalMaster(controllerDeviceId)) {
@@ -443,7 +451,7 @@ public class VtnManager implements VtnService {
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
-        // Create tunnel out flow rules，添加隧道的流VTEP
+        // Create tunnel out flow rules，在控制器上添加隧道的VTEP
         applyTunnelOut(device, Objective.Operation.ADD);
         // apply L3 arp flows，添加3层ARP的流规则
         Iterable<RouterInterface> interfaces = routerInterfaceService
@@ -529,7 +537,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //添加隧道VTEP,Device是控制器，操作类型是ADD
+    //在控制器上添加或删除隧道VTEP,Device是控制器，操作类型是ADD或REMOVE
     private void applyTunnelOut(Device device, Objective.Operation type) {
         String controllerIp = VtnData.getControllerIpOfSwitch(device);
         if (controllerIp == null) {
@@ -544,15 +552,20 @@ public class VtnManager implements VtnService {
             return;
         }
         if (type == Objective.Operation.ADD) {
-            // Save external port,保存外部端口
+            // Save external port,得到创建VTEP的端口
             Port export = getExPort(device.id());
             if (export != null) {
                 //分类服务，组装出端口Arp Classifier表规则
+                //组装出口端口Arp Classifier表规则。
+                //匹配：导出端口。
+                //操作：将数据包上传到控制器。通过调用flowObjectService实现
                 classifierService.programExportPortArpClassifierRules(export,
                                                                       device.id(),
                                                                       type);
+                //将设备的exPort端口存入map
                 exPortOfDevice.put(device.id(), export);
             }
+            //存入设备Id和端口对应的网络
             switchOfLocalHostPorts.put(device.id(), new NetworkOfLocalHostPorts());
         } else if (type == Objective.Operation.REMOVE) {
             exPortOfDevice.remove(device.id());
@@ -1295,12 +1308,17 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //在控制器添加VTEP时用到，传入控制器的device的Id,返回与该设备相关的端口列表
     private Port getExPort(DeviceId deviceId) {
+        //返回与该设备相关的端口列表
         List<Port> ports = deviceService.getPorts(deviceId);
         Port exPort = null;
         for (Port port : ports) {
+            //得到设备端口的名字
             String portName = port.annotations().value(AnnotationKeys.PORT_NAME);
-            Versioned<String> exPortVersioned = exPortMap.get(EX_PORT_KEY);
+            //通过exPortMap得到exPort的名字
+            Versioned<String> exPortVersioned = exPortMap.get(EX_PORT_KEY);//exPortKey
+            //如果设备端口的名字不是空，exPortMap得到的名字也不为空，且两个名字相同，则返回该端口
             if (portName != null && exPortVersioned != null && portName.
                     equals(exPortVersioned.value())) {
                 exPort = port;
@@ -1414,6 +1432,7 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //设置端口的名字,在VTN command里面用到
     public static void setExPortName(String name) {
         exPortMap.put(EX_PORT_KEY, name);
     }
