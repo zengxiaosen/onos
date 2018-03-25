@@ -259,6 +259,7 @@ public class VtnManager implements VtnService {
     private EventuallyConsistentMap<IpAddress, FloatingIp> floatingIpStore;
     private static ConsistentMap<String, String> exPortMap;
 
+    //内部类，用来处理VTN L3的数据包
     private VtnL3PacketProcessor l3PacketProcessor = new VtnL3PacketProcessor();
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected PacketService packetService;
@@ -355,6 +356,7 @@ public class VtnManager implements VtnService {
 
         //数据包处理服务
         packetService.addProcessor(l3PacketProcessor, PacketProcessor.director(0));
+
         log.info("Started");
     }
 
@@ -467,6 +469,7 @@ public class VtnManager implements VtnService {
         });
     }
 
+    //当检测到OVS消失时调用
     @Override
     public void onOvsVanished(Device device) {
         if (device == null) {
@@ -476,7 +479,7 @@ public class VtnManager implements VtnService {
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
-        // Remove Tunnel out flow rules
+        // Remove Tunnel out flow rules,移除隧道出口流规则
         applyTunnelOut(device, Objective.Operation.REMOVE);
         // apply L3 arp flows
         Iterable<RouterInterface> interfaces = routerInterfaceService
@@ -571,12 +574,17 @@ public class VtnManager implements VtnService {
             exPortOfDevice.remove(device.id());
             switchOfLocalHostPorts.remove(device.id());
         }
+        //得到当前系统中的所有的设备
         Iterable<Device> devices = deviceService.getAvailableDevices();
+        //从所有的设备中筛选出控制器
         DeviceId localControllerId = VtnData.getControllerId(device, devices);
+        //根据控制器Id创建驱动处理器
         DriverHandler handler = driverService.createHandler(localControllerId);
+
         Set<PortNumber> ports = VtnConfig.getPortNumbers(handler);
         Iterable<Host> allHosts = hostService.getHosts();
         String tunnelName = "vxlan-" + DEFAULT_IP;//0.0.0.0
+
         if (allHosts != null) {
             Sets.newHashSet(allHosts).forEach(host -> {
                 MacAddress hostMac = host.mac();
@@ -590,6 +598,7 @@ public class VtnManager implements VtnService {
                         .getPort(virtualPortId);
                 TenantNetwork network = tenantNetworkService
                         .getNetwork(virtualPort.networkId());
+                //segmentationId相当于VxLAN id
                 SegmentationId segmentationId = network.segmentationId();
                 DeviceId remoteDeviceId = host.location().deviceId();
                 Device remoteDevice = deviceService.getDevice(remoteDeviceId);
@@ -605,6 +614,10 @@ public class VtnManager implements VtnService {
                 ports.stream()
                         .filter(p -> p.name().equalsIgnoreCase(tunnelName))
                         .forEach(p -> {
+                            //二层转发服务
+                            //消息匹配表（50）的隧道输出规则。
+                           // 匹配：主机mac和vnid。
+                            //操作：输出隧道端口。
                             l2ForwardService
                                     .programTunnelOut(device.id(), segmentationId, p,
                                             hostMac, type, remoteIpAddress);
@@ -822,7 +835,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //内部主机监听器，监听主机的增加，删除和更新
+    //内部主机监听器，监听主机的增加，删除和更新,由hostservice提供
     private class InnerHostListener implements HostListener {
 
         @Override
@@ -1438,7 +1451,8 @@ public class VtnManager implements VtnService {
     }
 
     /**
-     * Packet processor responsible for forwarding packets along their paths.
+     * Packet processor responsible for forwarding packets along their paths
+     * 处理VTN L3的数据包.
      */
     private class VtnL3PacketProcessor implements PacketProcessor {
 
@@ -1616,6 +1630,7 @@ public class VtnManager implements VtnService {
         return ethernet;
     }
 
+    //发送packet-out数据包
     private void sendPacketOut(DeviceId deviceId, PortNumber portNumber,
                                Ethernet payload) {
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
@@ -1627,6 +1642,7 @@ public class VtnManager implements VtnService {
         packetService.emit(packet);
     }
 
+    //得到float Ip的子网
     private Subnet getSubnetOfFloatingIP(FloatingIp floatingIp) {
         DeviceId exVmPortId = DeviceId
                 .deviceId(floatingIp.id().floatingIpId().toString());
@@ -1655,6 +1671,7 @@ public class VtnManager implements VtnService {
         return subnet;
     }
 
+    //得到floatip的controlelr id
     private DeviceId getDeviceIdOfFloatingIP(FloatingIp floatingIp) {
         VirtualPortId vmPortId = floatingIp.portId();
         VirtualPort vmPort = virtualPortService.getPort(vmPortId);
@@ -1677,7 +1694,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //下载SNAT流规则
+    //下载SNAT流规则，在arprequestProcess和arpresponsetProcess方法中被调用
     private boolean downloadSnatRules(DeviceId deviceId, MacAddress srcMac,
                                       IpAddress srcIp, MacAddress dstMac,
                                       IpAddress dstIp, FloatingIp floatingIp) {
@@ -1732,6 +1749,7 @@ public class VtnManager implements VtnService {
     }
 
     //移除SNAT(Source Network Address Translation)表(表40)中的流规则，
+    //在applyNorthSouthL3Flows方法中被调用
     private void removeRulesInSnat(DeviceId deviceId, IpAddress fixedIp) {
         for (FlowEntry f : flowRuleService.getFlowEntries(deviceId)) {
             if (f.tableId() == SNAT_TABLE
