@@ -465,6 +465,7 @@ public class VtnManager implements VtnService {
                 //VtnData,来自vtn.util包，返回vPortStore这个Map中,key为routerInf.portId()的端口
                 gwPort = VtnData.getPort(vPortStore, routerInf.portId());
             }
+            //添加三层ARP协议的流规则
             applyL3ArpFlows(device.id(), gwPort, Objective.Operation.ADD);
         });
     }
@@ -489,6 +490,7 @@ public class VtnManager implements VtnService {
             if (gwPort == null) {
                 gwPort = VtnData.getPort(vPortStore, routerInf.portId());
             }
+            //删除三层ARP协议的流规则
             applyL3ArpFlows(device.id(), gwPort, Objective.Operation.REMOVE);
         });
     }
@@ -626,17 +628,22 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //为服务功能转发或者分类Ovs映射增加特定的设备标识
+    //在检测到主机或者检测到主机消失时调用,从添加或者删除租户网络主机
     private void programSffAndClassifierHost(Host host, Objective.Operation type) {
-        //host.location()返回主机连接到网络边缘的最新主机位置。
+        //得到主机连接到的控制器的设备id
         DeviceId deviceId = host.location().deviceId();
+        //得到主机链接的交换机的端口id
         String ifaceId = host.annotations().value(IFACEID);
+        //将交换机id转换为虚拟端口ID
         VirtualPortId virtualPortId = VirtualPortId.portId(ifaceId);
         VirtualPort virtualPort = virtualPortService.getPort(virtualPortId);
         if (virtualPort == null) {
             virtualPort = VtnData.getPort(vPortStore, virtualPortId);
         }
+        //根据虚拟端口拿到租户id
         TenantId tenantId = virtualPort.tenantId();
+
+        //从vtn资源服务中，添加或者移除资源
         if (Objective.Operation.ADD == type) {
             vtnRscService.addDeviceIdOfOvsMap(virtualPortId, tenantId, deviceId);
         } else if (Objective.Operation.REMOVE == type) {
