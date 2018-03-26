@@ -180,7 +180,7 @@ public class VtnManager implements VtnService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected TenantNetworkService tenantNetworkService;
 
-    //虚拟端口服务，用来查询虚拟端口是否存在
+    //虚拟端口服务，用来查询虚拟端口是否存在,属于org.onosproject.vtnrsc.virtualport
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected VirtualPortService virtualPortService;
 
@@ -268,10 +268,19 @@ public class VtnManager implements VtnService {
     public void activate() {
         appId = coreService.registerApplication(APP_ID);
         classifierService = new ClassifierServiceImpl(appId);
+        //L2ForwardServiceImpl类提供二层转发服务的实现，属于org.onosproject.vtn.table.impl包
         l2ForwardService = new L2ForwardServiceImpl(appId);
+
+        //同样属于org.onosproject.vtn.table.impl包
         arpService = new ArpServiceImpl(appId);
+
+        //属于org.onosproject.vtn.table.impl包
         l3ForwardService = new L3ForwardServiceImpl(appId);
+
+        //属于org.onosproject.vtn.table.impl包
         snatService = new SnatServiceImpl(appId);
+
+        //属于org.onosproject.vtn.table.impl包
         dnatService = new DnatServiceImpl(appId);
 
         deviceService.addListener(deviceListener);
@@ -449,7 +458,7 @@ public class VtnManager implements VtnService {
             log.error("The device is null");
             return;
         }
-        //如果控制器不是master角色则返回
+        //如果交换机所在的控制器不是master角色则返回
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
@@ -506,7 +515,9 @@ public class VtnManager implements VtnService {
             log.error("The ifaceId of Host is null");
             return;
         }
+        //在检测到主机或者检测到主机消失时调用,从添加或者删除租户网络主机
         programSffAndClassifierHost(host, Objective.Operation.ADD);
+
         // apply L2 openflow rules
         applyHostMonitoredL2Rules(host, Objective.Operation.ADD);
         // apply L3 openflow rules
@@ -524,6 +535,8 @@ public class VtnManager implements VtnService {
             log.error("The ifaceId of Host is null");
             return;
         }
+
+        //在检测到主机或者检测到主机消失时调用,从添加或者删除租户网络主机
         programSffAndClassifierHost(host, Objective.Operation.REMOVE);
         // apply L2 openflow rules
         applyHostMonitoredL2Rules(host, Objective.Operation.REMOVE);
@@ -542,7 +555,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //在控制器上添加或删除隧道VTEP,Device是控制器，操作类型是ADD或REMOVE
+    //在控制器上添加或删除隧道VTEP信息,Device是控制器，操作类型是ADD或REMOVE
     private void applyTunnelOut(Device device, Objective.Operation type) {
         String controllerIp = VtnData.getControllerIpOfSwitch(device);
         if (controllerIp == null) {
@@ -661,6 +674,7 @@ public class VtnManager implements VtnService {
             log.error("The ifaceId of Host is null");
             return;
         }
+        //虚拟端口也是vtn的资源
         VirtualPortId virtualPortId = VirtualPortId.portId(ifaceId);
         VirtualPort virtualPort = virtualPortService.getPort(virtualPortId);
         if (virtualPort == null) {
