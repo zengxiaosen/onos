@@ -218,7 +218,7 @@ public class VtnManager implements VtnService {
     protected NetworkConfigService networkConfigService;
 
     private ApplicationId appId;
-    //分类器服务,由vtn.table提供
+    //分类器服务,由vtn.table提供,下面几个服务都是由vtn.table包提供
     private ClassifierService classifierService;
     private L2ForwardService l2ForwardService;
     private ArpService arpService;
@@ -462,9 +462,11 @@ public class VtnManager implements VtnService {
         if (!mastershipService.isLocalMaster(device.id())) {
             return;
         }
-        // Create tunnel out flow rules，在控制器上添加隧道的VTEP
+        // Create tunnel out flow rules，在OVS上添加隧道的VTEP
         applyTunnelOut(device, Objective.Operation.ADD);
+
         // apply L3 arp flows，添加3层ARP的流规则
+        //得到路由器所有的接口,routerInterafaceService来自org.onosproject.vtnrsc.routerinterface包
         Iterable<RouterInterface> interfaces = routerInterfaceService
                 .getRouterInterfaces();
         interfaces.forEach(routerInf -> {
@@ -474,7 +476,7 @@ public class VtnManager implements VtnService {
                 //VtnData,来自vtn.util包，返回vPortStore这个Map中,key为routerInf.portId()的端口
                 gwPort = VtnData.getPort(vPortStore, routerInf.portId());
             }
-            //添加三层ARP协议的流规则
+            //在检测到的ovs上添加三层ARP协议的流规则
             applyL3ArpFlows(device.id(), gwPort, Objective.Operation.ADD);
         });
     }
@@ -499,7 +501,7 @@ public class VtnManager implements VtnService {
             if (gwPort == null) {
                 gwPort = VtnData.getPort(vPortStore, routerInf.portId());
             }
-            //删除三层ARP协议的流规则
+            //从OVS中删除三层ARP协议的流规则
             applyL3ArpFlows(device.id(), gwPort, Objective.Operation.REMOVE);
         });
     }
@@ -515,10 +517,10 @@ public class VtnManager implements VtnService {
             log.error("The ifaceId of Host is null");
             return;
         }
-        //在检测到主机或者检测到主机消失时调用,从添加或者删除租户网络主机
+        //在检测到主机或者检测到主机消失时调用,添加或者删除租户网络主机
         programSffAndClassifierHost(host, Objective.Operation.ADD);
 
-        // apply L2 openflow rules
+        // apply L2 openflow rules,
         applyHostMonitoredL2Rules(host, Objective.Operation.ADD);
         // apply L3 openflow rules
         applyHostMonitoredL3Rules(host, Objective.Operation.ADD);
@@ -546,7 +548,7 @@ public class VtnManager implements VtnService {
         vPortStore.remove(virtualPortId);
     }
 
-    //在控制器上创建和添加默认的隧道配置信息
+    //在检测到控制器后被调用，在控制器上创建和添加默认的隧道配置信息
     private void programTunnelConfig(DeviceId localDeviceId, IpAddress localIp,
                                      DriverHandler localHandler) {
         if (mastershipService.isLocalMaster(localDeviceId)) {
@@ -573,9 +575,9 @@ public class VtnManager implements VtnService {
             // Save external port,得到创建VTEP的端口
             Port export = getExPort(device.id());
             if (export != null) {
-                //分类服务，组装出端口Arp Classifier表规则
+                //处理vxlan网络中的ARP协议,将arp协议的数据包上传到控制器
                 //组装出口端口Arp Classifier表规则。
-                //匹配：导出端口。
+                //匹配：ovs的导出exPort端口。
                 //操作：将数据包上传到控制器。通过调用flowObjectService实现
                 classifierService.programExportPortArpClassifierRules(export,
                                                                       device.id(),
@@ -597,24 +599,36 @@ public class VtnManager implements VtnService {
         DriverHandler handler = driverService.createHandler(localControllerId);
 
         Set<PortNumber> ports = VtnConfig.getPortNumbers(handler);
+
+        //拿到所有的主机
         Iterable<Host> allHosts = hostService.getHosts();
         String tunnelName = "vxlan-" + DEFAULT_IP;//0.0.0.0
 
         if (allHosts != null) {
             Sets.newHashSet(allHosts).forEach(host -> {
+
                 MacAddress hostMac = host.mac();
+
+                //得到主机的ifaceid
                 String ifaceId = host.annotations().value(IFACEID);
+
                 if (ifaceId == null) {
                     log.error("The ifaceId of Host is null");
                     return;
                 }
+
                 VirtualPortId virtualPortId = VirtualPortId.portId(ifaceId);
+                //通过虚拟端口id和虚拟端口服务拿到虚拟端口的实例
                 VirtualPort virtualPort = virtualPortService
                         .getPort(virtualPortId);
+
+                //根据虚拟端口的networkId得到租户网络
                 TenantNetwork network = tenantNetworkService
                         .getNetwork(virtualPort.networkId());
+
                 //segmentationId相当于VxLAN id
                 SegmentationId segmentationId = network.segmentationId();
+
                 DeviceId remoteDeviceId = host.location().deviceId();
                 Device remoteDevice = deviceService.getDevice(remoteDeviceId);
                 String remoteControllerIp = VtnData
@@ -626,6 +640,7 @@ public class VtnManager implements VtnService {
                 }
                 IpAddress remoteIpAddress = IpAddress
                         .valueOf(remoteControllerIp);
+                //返回port集合的顺序流
                 ports.stream()
                         .filter(p -> p.name().equalsIgnoreCase(tunnelName))
                         .forEach(p -> {
@@ -641,7 +656,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //在检测到主机或者检测到主机消失时调用,从添加或者删除租户网络主机
+    //在检测到主机或者检测到主机消失时调用,添加或者删除租户网络主机
     private void programSffAndClassifierHost(Host host, Objective.Operation type) {
         //得到主机连接到的控制器的设备id
         DeviceId deviceId = host.location().deviceId();
@@ -664,27 +679,40 @@ public class VtnManager implements VtnService {
         }
     }
 
+    //在检测道主机或主机消失时调用,添加或者移除2层主机规则
     private void applyHostMonitoredL2Rules(Host host, Objective.Operation type) {
         DeviceId deviceId = host.location().deviceId();
+
         if (!mastershipService.isLocalMaster(deviceId)) {
             return;
         }
+
+        //主机链接的ovs的ifaceID
         String ifaceId = host.annotations().value(IFACEID);
+
         if (ifaceId == null) {
             log.error("The ifaceId of Host is null");
             return;
         }
         //虚拟端口也是vtn的资源
         VirtualPortId virtualPortId = VirtualPortId.portId(ifaceId);
+
+        //根据虚拟端口id拿到虚拟端口的实例
         VirtualPort virtualPort = virtualPortService.getPort(virtualPortId);
+
         if (virtualPort == null) {
             virtualPort = VtnData.getPort(vPortStore, virtualPortId);
         }
+
+        //拿到虚拟端口的fixedIp的集合
         Iterator<FixedIp> fixip = virtualPort.fixedIps().iterator();
         SubnetId subnetId = null;
+
         if (fixip.hasNext()) {
+            //返回固定IP的子网id
             subnetId = fixip.next().subnetId();
         }
+
         if (subnetId != null) {
             Map<HostId, Host> hosts = new ConcurrentHashMap();
             if (hostsOfSubnet.get(subnetId) != null) {
@@ -927,6 +955,7 @@ public class VtnManager implements VtnService {
         groupService.addGroup(groupDescription);
     }
 
+    //三层VTN资源事件监听类
     private class VtnL3EventListener implements VtnRscListener {
         @Override
         public void event(VtnRscEvent event) {
@@ -1084,7 +1113,7 @@ public class VtnManager implements VtnService {
         });
     }
 
-    //应用L3Arp流
+    ////在检测到的ovs上添加三层ARP协议的流规则
     private void applyL3ArpFlows(DeviceId deviceId, VirtualPort gwPort,
                                  Objective.Operation operation) {
         IpAddress ip = null;
@@ -1103,7 +1132,7 @@ public class VtnManager implements VtnService {
                 .getNetwork(gwPort.networkId());
 
         if (deviceId != null) {
-            // Arp rules
+            // Arp rules,向OVS添加arp服务流规则
             DriverHandler handler = driverService.createHandler(deviceId);
             arpService.programArpRules(handler, deviceId, gwIp,
                                        network.segmentationId(), gwMac,
