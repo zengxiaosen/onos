@@ -555,7 +555,7 @@ public class VtnManager implements VtnService {
         }
     }
 
-    //在控制器上添加或删除隧道VTEP信息,Device是控制器，操作类型是ADD或REMOVE
+    //在ovs添加或消失时调用，添加或删除隧道VTEP信息，操作类型是ADD或REMOVE,device是OVS
     private void applyTunnelOut(Device device, Objective.Operation type) {
         String controllerIp = VtnData.getControllerIpOfSwitch(device);
         if (controllerIp == null) {
