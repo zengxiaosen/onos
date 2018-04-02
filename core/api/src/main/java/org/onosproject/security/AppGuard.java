@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 /**
  * Aids SM-ONOS to perform API-level permission checking.
+ * 帮助SM-ONOS执行API级别的权限检查
  */
 @Beta
 public final class AppGuard {
