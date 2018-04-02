@@ -458,6 +458,7 @@ public class OpenFlowRuleProvider extends AbstractProvider
                     break;
                 case BARRIER_REPLY:
                     try {
+                        //从缓存中拿到对应Xid的消息
                         InternalCacheEntry entry = pendingBatches.getIfPresent(msg.getXid());
                         if (entry != null) {
                             providerService
@@ -725,10 +726,12 @@ public class OpenFlowRuleProvider extends AbstractProvider
     /**
      * The internal cache entry holding the original request as well as
      * accumulating the any failures along the way.
+     * 内部缓存条目保存了原始请求，并且一路积累了任何故障。
      * <p/>
      * If this entry is evicted from the cache then the entire operation is
      * considered failed. Otherwise, only the failures reported by the device
      * will be propagated up.
+     * 如果该条目从缓存中被逐出，则整个操作被认为失败。 否则，只有设备报告的故障会传播出去。
      */
     private class InternalCacheEntry {
 
