@@ -68,6 +68,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Maintains flow statistics using RPC calls to collect stats from remote instances
  * on demand.
+ * 使用RPC调用维护流量统计信息，以根据需要从远程实例收集统计信息。
  */
 @Component(immediate = true)
 @Service
