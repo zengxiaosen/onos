@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Implementation of a load.
+ * 实现一个 Load
  */
 public class DefaultLoad implements Load {
 
@@ -32,6 +33,7 @@ public class DefaultLoad implements Load {
 
     /**
      * Indicates the flow statistics poll interval in seconds.
+     * 表示以秒为单位的流量统计轮询间隔。
      */
     private static long pollInterval = 10; // same as IMMEDIATE and SHORT flow live type
 
@@ -61,7 +63,7 @@ public class DefaultLoad implements Load {
      *
      * @param current  the current value
      * @param previous the previous value
-     * @param interval poll interval for this load
+     * @param interval poll interval for this load,此负载的轮询间隔
      */
     public DefaultLoad(long current, long previous, long interval) {
         checkArgument(interval > 0, "Interval must be greater than 0");
