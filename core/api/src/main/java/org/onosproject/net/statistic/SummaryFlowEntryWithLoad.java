@@ -20,6 +20,7 @@ import org.onosproject.net.ConnectPoint;
 
 /**
  * Summary Load classified by flow live type.
+ * 摘要负载按流量 live 类型分类。
  */
 public class SummaryFlowEntryWithLoad {
     private ConnectPoint cp;
