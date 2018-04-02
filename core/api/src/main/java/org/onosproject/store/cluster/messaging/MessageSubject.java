@@ -23,6 +23,7 @@ import java.util.Objects;
  * Representation of a message subject.
  * Cluster messages have associated subjects that dictate how they get handled
  * on the receiving side.
+ * 表示消息主题。 集群消息具有相关的主题，指示如何在接收方处理它们。
  */
 public final class MessageSubject {
 
