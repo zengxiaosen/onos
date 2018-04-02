@@ -63,6 +63,7 @@ public interface FlowRuleProviderService extends ProviderService<FlowRuleProvide
     /**
      * Indicates to the core that the requested batch operation has
      * been completed.
+     * 向核心表明所请求的批处理操作已完成。
      *
      * @param batchId the batch which was processed
      * @param operation the resulting outcome of the operation
