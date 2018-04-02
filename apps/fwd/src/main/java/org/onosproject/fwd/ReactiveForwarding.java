@@ -868,7 +868,7 @@ public class ReactiveForwarding {
     }
 
     // Returns a set of src/dst MAC pairs extracted from the specified set of flow entries
-    //从指定的流表想中找到所有的src/dst mac地址对
+    //从指定的流表中找到所有的src/dst mac地址对
     private Set<SrcDstPair> findSrcDstPairs(Set<FlowEntry> rules) {
         ImmutableSet.Builder<SrcDstPair> builder = ImmutableSet.builder();
         for (FlowEntry r : rules) {
