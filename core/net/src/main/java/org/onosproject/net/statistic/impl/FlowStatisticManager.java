@@ -65,6 +65,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Provides an implementation of the Flow Statistic Service.
+ * 提供流统计服务的一个实现
  */
 @Component(immediate = true)
 @Service
