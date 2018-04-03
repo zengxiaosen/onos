@@ -253,6 +253,7 @@ public class FlowEntryBuilder {
         }
         if (stat.getVersion().getWireVersion() < OFVersion.OF_15.getWireVersion()) {
             if (afsc != null) {
+                //在这里根据统计的持续时间计算FlowLiveType
                 FlowEntry.FlowLiveType liveType = afsc.calFlowLiveType(stat.getDurationSec());
                 return new DefaultFlowEntry(builder.build(), FlowEntryState.ADDED,
                         SECONDS.toNanos(stat.getDurationSec())

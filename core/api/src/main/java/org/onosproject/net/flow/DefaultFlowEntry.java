@@ -50,7 +50,7 @@ public class DefaultFlowEntry extends DefaultFlowRule
     /**
      * Creates a flow entry of flow table specified with the flow rule, state
      * and statistic information.
-     *
+     * 在创建DefaultFLowEntry时,如果不指定FlowLiveType,则默认为unknown
      * @param rule the flow rule
      * @param state the flow state
      * @param life the duration second of flow
