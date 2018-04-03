@@ -49,6 +49,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Efficiently and adaptively collects flow statistics for the specified switch.
+ * 高效自适应地收集指定交换机的流量统计信息。
  */
 public class NewAdaptiveFlowStatsCollector implements SwitchDataCollector {
     private final Logger log = getLogger(getClass());
