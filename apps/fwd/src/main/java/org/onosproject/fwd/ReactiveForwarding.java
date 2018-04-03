@@ -811,6 +811,7 @@ public class ReactiveForwarding {
     }
 
     // Backtracks from link down event to remove flows that lead to blackhole
+    //从链路断开事件回溯以消除导致黑洞的流量
     private void backTrackBadNodes(Set<Path> shortestPaths, DeviceId dstId, SrcDstPair sd) {
         for (Path p : shortestPaths) {
             List<Link> pathLinks = p.links();
