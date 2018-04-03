@@ -559,6 +559,7 @@ public class ReactiveForwarding {
             // Otherwise, pick a path that does not lead back to where we
             // came from; if no such path, flood and bail.如果存在路径的话，从给定集合中选择一条不返回指定端口的路径。
             Path path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
+            log.debug(path.toString());
             if (path == null) {
                 log.warn("Don't know where to go from here {} for {} -> {}",
                          pkt.receivedFrom(), ethPkt.getSourceMAC(), ethPkt.getDestinationMAC());
@@ -587,6 +588,7 @@ public class ReactiveForwarding {
     // specified port if possible.如果可能的话，从给定集合中选择一条不返回指定端口的路径。
     private Path pickForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
         for (Path path : paths) {
+            log.debug(path.toString());
             if (!path.src().port().equals(notToPort)) {
                 return path;
             }
