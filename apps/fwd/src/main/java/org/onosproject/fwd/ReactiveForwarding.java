@@ -89,6 +89,7 @@ import org.onosproject.store.service.WallClockTimestamp;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
@@ -110,7 +111,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 @Service(value = ReactiveForwarding.class)
 public class ReactiveForwarding {
     //默认超时时间
-    private static final int DEFAULT_TIMEOUT = 10;
+    private static final int DEFAULT_TIMEOUT = 30;
     //默认优先级
     private static final int DEFAULT_PRIORITY = 10;
 
@@ -144,9 +145,12 @@ public class ReactiveForwarding {
     //本类的一个内部私有类
     private ReactivePacketProcessor processor = new ReactivePacketProcessor();
 
-    private  EventuallyConsistentMap<MacAddress, ReactiveForwardMetrics> metrics;
+    private EventuallyConsistentMap<MacAddress, ReactiveForwardMetrics> metrics;
 
     private ApplicationId appId;
+
+    private static List<DeviceId> linkDestDeviceId;
+    private static int linkDestDeviceIdIndex = 0;
 
     //property注解定义组件可以通过ComponentContext().getProperties()得到的属性
     //只转发packet-out消息，默认为假
@@ -241,7 +245,7 @@ public class ReactiveForwarding {
                 .register(ReactiveForwardMetrics.class)
                 .register(MultiValuedTimestamp.class);
         //根据名称空间和时间戳生成存储服务，
-        metrics =  storageService.<MacAddress, ReactiveForwardMetrics> eventuallyConsistentMapBuilder()
+        metrics = storageService.<MacAddress, ReactiveForwardMetrics>eventuallyConsistentMapBuilder()
                 .withName("metrics-fwd")
                 .withSerializer(metricSerializer)
                 .withTimestampProvider((key, metricsData) -> new
@@ -319,7 +323,8 @@ public class ReactiveForwarding {
 
     /**
      * Extracts properties from the component configuration context.
-     *从component配置上下文中提取属性,在invactivate方法中被调用
+     * 从component配置上下文中提取属性,在invactivate方法中被调用
+     *
      * @param context the component context
      */
     private void readComponentConfiguration(ComponentContext context) {
@@ -329,142 +334,142 @@ public class ReactiveForwarding {
                 Tools.isPropertyEnabled(properties, "packetOutOnly");
         if (packetOutOnlyEnabled == null) {
             log.info("Packet-out is not configured, " +
-                     "using current value of {}", packetOutOnly);
+                             "using current value of {}", packetOutOnly);
         } else {
             packetOutOnly = packetOutOnlyEnabled;
             log.info("Configured. Packet-out only forwarding is {}",
-                    packetOutOnly ? "enabled" : "disabled");
+                     packetOutOnly ? "enabled" : "disabled");
         }
 
         Boolean packetOutOfppTableEnabled =
                 Tools.isPropertyEnabled(properties, "packetOutOfppTable");
         if (packetOutOfppTableEnabled == null) {
             log.info("OFPP_TABLE port is not configured, " +
-                     "using current value of {}", packetOutOfppTable);
+                             "using current value of {}", packetOutOfppTable);
         } else {
             packetOutOfppTable = packetOutOfppTableEnabled;
             log.info("Configured. Forwarding using OFPP_TABLE port is {}",
-                    packetOutOfppTable ? "enabled" : "disabled");
+                     packetOutOfppTable ? "enabled" : "disabled");
         }
 
         Boolean ipv6ForwardingEnabled =
                 Tools.isPropertyEnabled(properties, "ipv6Forwarding");
         if (ipv6ForwardingEnabled == null) {
             log.info("IPv6 forwarding is not configured, " +
-                     "using current value of {}", ipv6Forwarding);
+                             "using current value of {}", ipv6Forwarding);
         } else {
             ipv6Forwarding = ipv6ForwardingEnabled;
             log.info("Configured. IPv6 forwarding is {}",
-                    ipv6Forwarding ? "enabled" : "disabled");
+                     ipv6Forwarding ? "enabled" : "disabled");
         }
 
         Boolean matchDstMacOnlyEnabled =
                 Tools.isPropertyEnabled(properties, "matchDstMacOnly");
         if (matchDstMacOnlyEnabled == null) {
             log.info("Match Dst MAC is not configured, " +
-                     "using current value of {}", matchDstMacOnly);
+                             "using current value of {}", matchDstMacOnly);
         } else {
             matchDstMacOnly = matchDstMacOnlyEnabled;
             log.info("Configured. Match Dst MAC Only is {}",
-                    matchDstMacOnly ? "enabled" : "disabled");
+                     matchDstMacOnly ? "enabled" : "disabled");
         }
 
         Boolean matchVlanIdEnabled =
                 Tools.isPropertyEnabled(properties, "matchVlanId");
         if (matchVlanIdEnabled == null) {
             log.info("Matching Vlan ID is not configured, " +
-                     "using current value of {}", matchVlanId);
+                             "using current value of {}", matchVlanId);
         } else {
             matchVlanId = matchVlanIdEnabled;
             log.info("Configured. Matching Vlan ID is {}",
-                    matchVlanId ? "enabled" : "disabled");
+                     matchVlanId ? "enabled" : "disabled");
         }
 
         Boolean matchIpv4AddressEnabled =
                 Tools.isPropertyEnabled(properties, "matchIpv4Address");
         if (matchIpv4AddressEnabled == null) {
             log.info("Matching IPv4 Address is not configured, " +
-                     "using current value of {}", matchIpv4Address);
+                             "using current value of {}", matchIpv4Address);
         } else {
             matchIpv4Address = matchIpv4AddressEnabled;
             log.info("Configured. Matching IPv4 Addresses is {}",
-                    matchIpv4Address ? "enabled" : "disabled");
+                     matchIpv4Address ? "enabled" : "disabled");
         }
 
         Boolean matchIpv4DscpEnabled =
                 Tools.isPropertyEnabled(properties, "matchIpv4Dscp");
         if (matchIpv4DscpEnabled == null) {
             log.info("Matching IPv4 DSCP and ECN is not configured, " +
-                     "using current value of {}", matchIpv4Dscp);
+                             "using current value of {}", matchIpv4Dscp);
         } else {
             matchIpv4Dscp = matchIpv4DscpEnabled;
             log.info("Configured. Matching IPv4 DSCP and ECN is {}",
-                    matchIpv4Dscp ? "enabled" : "disabled");
+                     matchIpv4Dscp ? "enabled" : "disabled");
         }
 
         Boolean matchIpv6AddressEnabled =
                 Tools.isPropertyEnabled(properties, "matchIpv6Address");
         if (matchIpv6AddressEnabled == null) {
             log.info("Matching IPv6 Address is not configured, " +
-                     "using current value of {}", matchIpv6Address);
+                             "using current value of {}", matchIpv6Address);
         } else {
             matchIpv6Address = matchIpv6AddressEnabled;
             log.info("Configured. Matching IPv6 Addresses is {}",
-                    matchIpv6Address ? "enabled" : "disabled");
+                     matchIpv6Address ? "enabled" : "disabled");
         }
 
         Boolean matchIpv6FlowLabelEnabled =
                 Tools.isPropertyEnabled(properties, "matchIpv6FlowLabel");
         if (matchIpv6FlowLabelEnabled == null) {
             log.info("Matching IPv6 FlowLabel is not configured, " +
-                     "using current value of {}", matchIpv6FlowLabel);
+                             "using current value of {}", matchIpv6FlowLabel);
         } else {
             matchIpv6FlowLabel = matchIpv6FlowLabelEnabled;
             log.info("Configured. Matching IPv6 FlowLabel is {}",
-                    matchIpv6FlowLabel ? "enabled" : "disabled");
+                     matchIpv6FlowLabel ? "enabled" : "disabled");
         }
 
         Boolean matchTcpUdpPortsEnabled =
                 Tools.isPropertyEnabled(properties, "matchTcpUdpPorts");
         if (matchTcpUdpPortsEnabled == null) {
             log.info("Matching TCP/UDP fields is not configured, " +
-                     "using current value of {}", matchTcpUdpPorts);
+                             "using current value of {}", matchTcpUdpPorts);
         } else {
             matchTcpUdpPorts = matchTcpUdpPortsEnabled;
             log.info("Configured. Matching TCP/UDP fields is {}",
-                    matchTcpUdpPorts ? "enabled" : "disabled");
+                     matchTcpUdpPorts ? "enabled" : "disabled");
         }
 
         Boolean matchIcmpFieldsEnabled =
                 Tools.isPropertyEnabled(properties, "matchIcmpFields");
         if (matchIcmpFieldsEnabled == null) {
             log.info("Matching ICMP (v4 and v6) fields is not configured, " +
-                     "using current value of {}", matchIcmpFields);
+                             "using current value of {}", matchIcmpFields);
         } else {
             matchIcmpFields = matchIcmpFieldsEnabled;
             log.info("Configured. Matching ICMP (v4 and v6) fields is {}",
-                    matchIcmpFields ? "enabled" : "disabled");
+                     matchIcmpFields ? "enabled" : "disabled");
         }
 
         Boolean ignoreIpv4McastPacketsEnabled =
                 Tools.isPropertyEnabled(properties, "ignoreIpv4McastPackets");
         if (ignoreIpv4McastPacketsEnabled == null) {
             log.info("Ignore IPv4 multi-cast packet is not configured, " +
-                     "using current value of {}", ignoreIpv4McastPackets);
+                             "using current value of {}", ignoreIpv4McastPackets);
         } else {
             ignoreIpv4McastPackets = ignoreIpv4McastPacketsEnabled;
             log.info("Configured. Ignore IPv4 multicast packets is {}",
-                    ignoreIpv4McastPackets ? "enabled" : "disabled");
+                     ignoreIpv4McastPackets ? "enabled" : "disabled");
         }
         Boolean recordMetricsEnabled =
                 Tools.isPropertyEnabled(properties, "recordMetrics");
         if (recordMetricsEnabled == null) {
             log.info("IConfigured. Ignore record metrics  is {} ," +
-                    "using current value of {}", recordMetrics);
+                             "using current value of {}", recordMetrics);
         } else {
             recordMetrics = recordMetricsEnabled;
             log.info("Configured. record metrics  is {}",
-                    recordMetrics ? "enabled" : "disabled");
+                     recordMetrics ? "enabled" : "disabled");
         }
 
         flowTimeout = Tools.getIntegerProperty(properties, "flowTimeout", DEFAULT_TIMEOUT);
@@ -534,7 +539,9 @@ public class ReactiveForwarding {
                 flood(context, macMetrics);
                 return;
             }
-
+            log.info("============================  Packet-in-DeviceId  ====================================");
+            log.info(pkt.receivedFrom().deviceId().toString());
+            log.info("==================================================================================");
             // Are we on an edge switch that our destination is on? If so,
             // simply forward out to the destination and bail.如果是目的主机链接的边缘交换机发过来的，简单安装流规则，然后释放。
             if (pkt.receivedFrom().deviceId().equals(dst.location().deviceId())) {
@@ -558,10 +565,17 @@ public class ReactiveForwarding {
 
             // Otherwise, pick a path that does not lead back to where we
             // came from; if no such path, flood and bail.如果存在路径的话，从给定集合中选择一条不返回指定端口的路径。
-            Path path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
-            log.info("--------------------------------------------------------------------");
-            log.info(path.toString());
-            log.info("--------------------------------------------------------------------");
+            Path path;
+            if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01")&&
+                    ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")) {
+                path = pickForwardPathByTimeAndLink(paths, pkt);
+                log.info("============================  path   ====================================");
+                log.info(path.toString());
+                log.info("=====================================================================");
+            }else {
+                path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
+            }
+
             if (path == null) {
                 log.warn("Don't know where to go from here {} for {} -> {}",
                          pkt.receivedFrom(), ethPkt.getSourceMAC(), ethPkt.getDestinationMAC());
@@ -590,11 +604,38 @@ public class ReactiveForwarding {
     // specified port if possible.如果可能的话，从给定集合中选择一条不返回指定端口的路径。
     private Path pickForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
         for (Path path : paths) {
-            log.debug(path.toString());
             if (!path.src().port().equals(notToPort)) {
                 return path;
             }
         }
+        return null;
+    }
+
+    private Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
+
+        linkDestDeviceId = new ArrayList<DeviceId>();
+
+        for (Path path : paths) {
+            for (Link link : path.links()) {
+                if (link.src().deviceId().equals(path.src().deviceId())) {
+                    linkDestDeviceId.add(link.dst().deviceId());
+                }
+            }
+        }
+
+        if (linkDestDeviceIdIndex >= linkDestDeviceId.size()) {
+            linkDestDeviceIdIndex = 0;
+        }
+
+        for (Path path : paths) {
+            for (Link link : path.links()) {
+                if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
+                    linkDestDeviceIdIndex++;
+                    return path;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -806,7 +847,7 @@ public class ReactiveForwarding {
                 Set<Path> shortestPaths = srcPaths.get(srcId);
                 if (shortestPaths == null) {
                     shortestPaths = topologyService.getPaths(topologyService.currentTopology(),
-                            egress.deviceId(), srcId);
+                                                             egress.deviceId(), srcId);
                     srcPaths.put(srcId, shortestPaths);
                 }
                 backTrackBadNodes(shortestPaths, dstId, sd);
@@ -906,7 +947,7 @@ public class ReactiveForwarding {
     }
 
     //增加转发计数
-    private void  forwardPacket(ReactiveForwardMetrics macmetrics) {
+    private void forwardPacket(ReactiveForwardMetrics macmetrics) {
         if (recordMetrics) {
             macmetrics.incrementForwardedPacket();
             metrics.put(macmetrics.getMacAddress(), macmetrics);
