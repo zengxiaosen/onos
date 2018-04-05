@@ -87,6 +87,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * An implementation of intent service.
+ * 意向服务的实现
  */
 @Component(immediate = true)
 @Service
