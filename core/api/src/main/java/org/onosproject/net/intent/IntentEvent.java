@@ -98,7 +98,7 @@ public class IntentEvent extends AbstractEvent<IntentEvent.Type, Intent> {
      * Creates an IntentEvent based on the state contained in the given intent
      * data. Some states are not sent as external events, and these states will
      * return null events.
-     *
+     * 根据给定意图数据中包含的状态创建一个IntentEvent。 一些状态不作为外部事件发送，并且这些状态将返回空事件。
      * @param data the intent data to create an event for
      * @return new intent event if the state is valid, otherwise null.
      */
