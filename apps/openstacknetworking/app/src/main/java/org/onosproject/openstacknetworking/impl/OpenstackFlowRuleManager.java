@@ -51,6 +51,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Sets flow rules directly using FlowRuleService.
+ * 直接使用FlowRulesService设置流规则
  */
 @Service
 @Component(immediate = true)
