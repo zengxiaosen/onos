@@ -72,6 +72,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Manages inventory of Intents in a distributed data store that uses optimistic
  * replication and gossip based techniques.
+ * 在使用乐观复制和基于流言的技术的分布式数据存储中管理Intents清单。
+ * 乐观复制,是允许副本允许发散的复制策略。
  */
 //FIXME we should listen for leadership changes. if the local instance has just
 // ...  become a leader, scan the pending map and process those
