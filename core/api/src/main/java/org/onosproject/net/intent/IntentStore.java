@@ -101,7 +101,7 @@ public interface IntentStore extends Store<IntentEvent, IntentStoreDelegate> {
 
     /**
      * Adds a new operation, which should be persisted and delegated.
-     *
+     * 添加一个新操作，该操作应该被保留并委派。
      * @param intent operation
      */
     void addPending(IntentData intent);
