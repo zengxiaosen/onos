@@ -41,6 +41,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Simple single-instance implementation of the intent store.
+ * 意向存储的简单单实例实现。
  */
 @Component(immediate = true)
 @Service

@@ -71,6 +71,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Installer for FlowRuleIntent.
+ * FlowRule的intent intsaller
  */
 @Component(immediate = true)
 public class FlowRuleIntentInstaller implements IntentInstaller<FlowRuleIntent> {
