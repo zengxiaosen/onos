@@ -23,7 +23,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Immutable representation of a device identity.
  */
-public final class DeviceId extends ElementId {
+public final class DeviceId extends ElementId implements Comparable {
 
     /**
      * Represents either no device, or an unspecified device.
@@ -66,7 +66,7 @@ public final class DeviceId extends ElementId {
      */
     public static DeviceId deviceId(String string) {
         checkArgument(string.length() <= DEVICE_ID_MAX_LENGTH,
-                "deviceId exceeds maximum length " + DEVICE_ID_MAX_LENGTH);
+                      "deviceId exceeds maximum length " + DEVICE_ID_MAX_LENGTH);
         return deviceId(URI.create(string));
     }
 
@@ -102,4 +102,12 @@ public final class DeviceId extends ElementId {
         return str;
     }
 
+    @Override
+    public int compareTo(Object o) {
+        if (o.hashCode() > this.hashCode()) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
 }
