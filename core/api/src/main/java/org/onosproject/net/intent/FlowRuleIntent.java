@@ -30,6 +30,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * An intent that enables to tell flow level operation.
  * This instance holds a collection of flow rules that may be executed in parallel.
+ * 一个意图，可以说明流规则级别的操作。
+ * 这个实例拥有可以并行执行的流程规则的集合。
  */
 @Beta
 public class FlowRuleIntent extends Intent {
