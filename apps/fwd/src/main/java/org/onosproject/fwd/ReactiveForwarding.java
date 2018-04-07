@@ -158,8 +158,8 @@ public class ReactiveForwarding {
 
     private ApplicationId appId;
 
-    private static List<DeviceId> linkDestDeviceId = new ArrayList<DeviceId>();
-    private static int linkDestDeviceIdIndex = 0;
+    private  List<DeviceId> linkDestDeviceId = new ArrayList<DeviceId>();
+    private int linkDestDeviceIdIndex = 0;
 
     //property注解定义组件可以通过ComponentContext().getProperties()得到的属性
     //只转发packet-out消息，默认为假
@@ -558,6 +558,8 @@ public class ReactiveForwarding {
                 return;
             }
 
+            log.info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxx     valid packet-in     xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+            log.info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             // Otherwise, get a set of paths that lead from here to the
             // destination edge switch.如果不是边缘交换机，则通过拓扑服务，得到从这里到达目地边缘交换机的路径集合。
             Set<Path> paths =
@@ -575,7 +577,7 @@ public class ReactiveForwarding {
             Path path;
             if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01")&&
                     ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")) {
-                path = pickForwardPathByTimeAndLink(paths, pkt);
+                path = pickForwardPathByTimeAndLink(paths);
             }else {
                 path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
             }
@@ -615,37 +617,43 @@ public class ReactiveForwarding {
         return null;
     }
 
-    private Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
+    private Path pickForwardPathByTimeAndLink(Set<Path> paths) {
 
         linkDestDeviceId.clear();
 
-        for (Path path : paths) {
-
-            for (Link link : path.links()) {
-                if (link.src().deviceId().equals(path.src().deviceId())) {
-                    linkDestDeviceId.add(link.dst().deviceId());
+        if(paths.size()>=2){
+            for (Path path : paths) {
+                for (Link link : path.links()) {
+                    if (link.src().deviceId().equals(path.src().deviceId())) {
+                        linkDestDeviceId.add(link.dst().deviceId());
+                    }
                 }
             }
-        }
 
-        Collections.sort(linkDestDeviceId);
+            Collections.sort(linkDestDeviceId);
 
-        if (linkDestDeviceIdIndex >= linkDestDeviceId.size()) {
-            linkDestDeviceIdIndex = 0;
-        }
+            if (linkDestDeviceIdIndex >= linkDestDeviceId.size()) {
+                linkDestDeviceIdIndex = 0;
+            }
 
-        for (Path path : paths) {
-            for (Link link : path.links()) {
-                if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
-                    log.info("============================  linkDestDeviceIdIndex   ====================================");
-                    log.info(linkDestDeviceIdIndex+"   "+linkDestDeviceId.get(linkDestDeviceIdIndex).toString());
-                    log.info("=====================================================================");
-                    linkDestDeviceIdIndex++;
-                    return path;
+            for (Path path : paths) {
+                for (Link link : path.links()) {
+                    if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
+                        log.info("============================     path     ====================================");
+                        log.info(path.toString());
+                        log.info(linkDestDeviceId.toString());
+                        log.info("=============================================================================");
+                        linkDestDeviceIdIndex++;
+                        return path;
+                    }
                 }
             }
+        }else {
+            for (Path path : paths) {
+                return path;
+            }
+            return null;
         }
-
         return null;
     }
 
