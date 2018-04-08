@@ -73,6 +73,7 @@ import org.onosproject.net.flowobjective.FlowObjectiveService;
 import org.onosproject.net.flowobjective.ForwardingObjective;
 import org.onosproject.net.host.HostService;
 import org.onosproject.net.link.LinkEvent;
+import org.onosproject.net.packet.DefaultInboundPacket;
 import org.onosproject.net.packet.InboundPacket;
 import org.onosproject.net.packet.PacketContext;
 import org.onosproject.net.packet.PacketPriority;
@@ -494,6 +495,8 @@ public class ReactiveForwarding {
      */
     private class ReactivePacketProcessor implements PacketProcessor {
 
+        public InboundPacket packetPre;
+
         @Override
         public void process(PacketContext context) {
             // Stop processing if the packet has been handled, since we
@@ -504,6 +507,7 @@ public class ReactiveForwarding {
             }
 
             InboundPacket pkt = context.inPacket();
+
             Ethernet ethPkt = pkt.parsed();//从数据包中解析出以太网的信息
 
             if (ethPkt == null) {
@@ -557,9 +561,6 @@ public class ReactiveForwarding {
                 }
                 return;
             }
-
-            log.info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxx     valid packet-in     xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-            log.info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             // Otherwise, get a set of paths that lead from here to the
             // destination edge switch.如果不是边缘交换机，则通过拓扑服务，得到从这里到达目地边缘交换机的路径集合。
             Set<Path> paths =
@@ -576,7 +577,18 @@ public class ReactiveForwarding {
             // came from; if no such path, flood and bail.如果存在路径的话，从给定集合中选择一条不返回指定端口的路径。
             Path path;
             if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01")&&
-                    ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")) {
+                    ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")&&paths.size()>1) {
+                if(null == packetPre){
+                    packetPre = pkt;
+
+                }else if(pkt.receivedFrom().deviceId().equals(packetPre.receivedFrom().deviceId())){
+
+                    log.info("============================     packetPre     ====================================");
+                    log.info("拦截了同一个交换机的相同请求的packet-in");
+                    log.info("=============================================================================");
+
+                    return;
+                }
                 path = pickForwardPathByTimeAndLink(paths);
             }else {
                 path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
@@ -641,7 +653,7 @@ public class ReactiveForwarding {
                     if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
                         log.info("============================     path     ====================================");
                         log.info(path.toString());
-                        log.info(linkDestDeviceId.toString());
+                        log.info(linkDestDeviceId.toString()+","+linkDestDeviceIdIndex);
                         log.info("=============================================================================");
                         linkDestDeviceIdIndex++;
                         return path;
@@ -815,7 +827,7 @@ public class ReactiveForwarding {
                 .withTreatment(treatment)
                 .withPriority(flowPriority)
                 .fromApp(appId)
-                .withHardTimeout(30);
+                .withHardTimeout(10);
 
         FlowRuleOperations.Builder flowOpsBuilder = FlowRuleOperations.builder();
         flowOpsBuilder = flowOpsBuilder.add(flowRuleBuilder.build());
@@ -823,11 +835,13 @@ public class ReactiveForwarding {
         flowRuleService.apply(flowOpsBuilder.build(new FlowRuleOperationsContext() {
             @Override
             public void onSuccess(FlowRuleOperations ops) {
+                processor.packetPre = null;
                 log.debug("FlowRule安装成功");
             }
 
             @Override
             public void onError(FlowRuleOperations ops) {
+                processor.packetPre = null;
                 log.debug("Failed to privision vni or forwarding table");
             }
         }));
