@@ -272,10 +272,13 @@ public class ReactiveForwarding {
         packetService.addProcessor(processor, PacketProcessor.director(2));
         topologyService.addListener(topologyListener);
         readComponentConfiguration(context);
-        requestIntercepts();//截取请求
+
+        //主动下发流表规则
+        activeInstallFlowRule();
 
         log.info("Started", appId.id());
     }
+
 
     @Deactivate
     public void deactivate() {
@@ -293,28 +296,48 @@ public class ReactiveForwarding {
     @Modified
     public void modified(ComponentContext context) {
         readComponentConfiguration(context);
-        requestIntercepts();//截取请求
     }
 
-    /**
-     * Request packet in via packet service.
-     * 通过数据包服务请求获得数据包，在inactivate方法中被调用
-     */
-    private void requestIntercepts() {
-        //构建流量选择器
-        TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
-        //选择以太网类型
-        selector.matchEthType(Ethernet.TYPE_IPV4);
-        packetService.requestPackets(selector.build(), PacketPriority.REACTIVE, appId);
-        selector.matchEthType(Ethernet.TYPE_ARP);
-        packetService.requestPackets(selector.build(), PacketPriority.REACTIVE, appId);
+    private void activeInstallFlowRule() {
+        // Do we know who this is for? If not, flood and bail.如果主机服务中没有这个主机，flood然后丢弃
+        HostId srcHostId = HostId.hostId(MacAddress.valueOf("00:00:00:00:00:01"));
+        HostId dstHostId = HostId.hostId(MacAddress.valueOf("00:00:00:00:00:04"));
+        Host srcHost = hostService.getHost(srcHostId);
+        Host destHost = hostService.getHost(dstHostId);
 
-        selector.matchEthType(Ethernet.TYPE_IPV6);
-        if (ipv6Forwarding) {
-            packetService.requestPackets(selector.build(), PacketPriority.REACTIVE, appId);
-        } else {
-            packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
+        //安装边缘交换机的
+
+        if (srcHost == null||destHost==null) {
+            log.info("找不到主机"+srcHost.toString()+","+destHost.toString());
+            return;
         }
+        // Otherwise, get a set of paths that lead from here to the
+        // destination edge switch.如果不是边缘交换机，则通过拓扑服务，得到从这里到达目地边缘交换机的路径集合。
+        Set<Path> paths =
+                topologyService.getPaths(topologyService.currentTopology(),
+                                         srcHost.location().deviceId(),
+                                         destHost.location().deviceId());
+        if(null == paths){
+            log.info("找不到到达目标主机的路径集合");
+            return;
+        }
+
+        Path path = pickForwardPathByTimeAndLink(paths);
+
+        if(path == null){
+            log.info("找不到单条路径通往目标主机");
+            return;
+        }
+
+        for(Link link:path.links()){
+            if(link == null)
+                return;
+            sendFlowRules(link.src().port());
+        }
+    }
+
+    private void sendFlowRules(PortNumber portNumber) {
+
     }
 
     /**
