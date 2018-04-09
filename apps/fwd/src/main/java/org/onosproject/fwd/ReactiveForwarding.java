@@ -53,10 +53,13 @@ import org.onosproject.net.HostId;
 import org.onosproject.net.Link;
 import org.onosproject.net.Path;
 import org.onosproject.net.PortNumber;
+import org.onosproject.net.flow.DefaultFlowRule;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
 import org.onosproject.net.flow.FlowEntry;
 import org.onosproject.net.flow.FlowRule;
+import org.onosproject.net.flow.FlowRuleOperations;
+import org.onosproject.net.flow.FlowRuleOperationsContext;
 import org.onosproject.net.flow.FlowRuleService;
 import org.onosproject.net.flow.TrafficSelector;
 import org.onosproject.net.flow.TrafficTreatment;
@@ -150,8 +153,9 @@ public class ReactiveForwarding {
 
     private ApplicationId appId;
 
-    private static List<DeviceId> linkDestDeviceId;
-    private static int linkDestDeviceIdIndex = 0;
+    private List<DeviceId> linkDestDeviceId = new ArrayList<>();
+    private int linkDestDeviceIdIndex = 0;
+    private Thread timerThread = new TimerThread();
 
     //property注解定义组件可以通过ComponentContext().getProperties()得到的属性
     //只转发packet-out消息，默认为假
@@ -264,6 +268,8 @@ public class ReactiveForwarding {
         topologyService.addListener(topologyListener);
         readComponentConfiguration(context);
         requestIntercepts();//截取请求
+        linkDestDeviceId = Collections.synchronizedList(linkDestDeviceId);
+        timerThread.start();
 
         log.info("Started", appId.id());
     }
@@ -486,8 +492,6 @@ public class ReactiveForwarding {
      */
     private class ReactivePacketProcessor implements PacketProcessor {
 
-        public InboundPacket inboundPacketPre;
-
         @Override
         public void process(PacketContext context) {
             // Stop processing if the packet has been handled, since we
@@ -499,13 +503,6 @@ public class ReactiveForwarding {
 
             InboundPacket pkt = context.inPacket();
 
-            /*if(inboundPacketPre != null){
-                if(pkt.receivedFrom().deviceId().equals(inboundPacketPre.receivedFrom().deviceId())){
-                    return;
-                }
-            }*/
-
-            inboundPacketPre = pkt;
             Ethernet ethPkt = pkt.parsed();//从数据包中解析出以太网的信息
 
             if (ethPkt == null) {
@@ -550,9 +547,6 @@ public class ReactiveForwarding {
                 flood(context, macMetrics);
                 return;
             }
-            log.info("============================  Packet-in-DeviceId  ====================================");
-            log.info(pkt.receivedFrom().deviceId().toString());
-            log.info("==================================================================================");
             // Are we on an edge switch that our destination is on? If so,
             // simply forward out to the destination and bail.如果是目的主机链接的边缘交换机发过来的，简单安装流规则，然后释放。
             if (pkt.receivedFrom().deviceId().equals(dst.location().deviceId())) {
@@ -577,10 +571,11 @@ public class ReactiveForwarding {
             // Otherwise, pick a path that does not lead back to where we
             // came from; if no such path, flood and bail.如果存在路径的话，从给定集合中选择一条不返回指定端口的路径。
             Path path;
-            if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01")&&
+            if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01") &&
                     ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")) {
                 path = pickForwardPathByTimeAndLink(paths, pkt);
-            }else {
+
+            } else {
                 path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
             }
 
@@ -592,6 +587,7 @@ public class ReactiveForwarding {
             }
 
             // Otherwise forward and be done with it.最后安装流规则
+
             installRule(context, path.src().port(), macMetrics);
         }
 
@@ -620,9 +616,10 @@ public class ReactiveForwarding {
     }
 
     private Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
+
         linkDestDeviceId.clear();
 
-        if(paths.size()>=2){
+        if (paths.size() >= 2) {
             for (Path path : paths) {
                 for (Link link : path.links()) {
                     if (link.src().deviceId().equals(path.src().deviceId())) {
@@ -630,26 +627,26 @@ public class ReactiveForwarding {
                     }
                 }
             }
-
-            Collections.sort(linkDestDeviceId);
-
-            if (linkDestDeviceIdIndex >= linkDestDeviceId.size()) {
-                linkDestDeviceIdIndex = 0;
+            if (linkDestDeviceId.size() != 3 ) {
+                log.info("============================  linked dest device id  =====================================");
+                log.info(linkDestDeviceId.toString());
+                log.info("=============================================================================");
+                return null;
             }
+            Collections.sort(linkDestDeviceId);
 
             for (Path path : paths) {
                 for (Link link : path.links()) {
                     if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
-                        log.info("============================     path     ====================================");
+                        /*log.info("============================     path     ====================================");
                         log.info(path.toString());
                         log.info(linkDestDeviceId.toString()+","+linkDestDeviceIdIndex);
-                        log.info("=============================================================================");
-                        linkDestDeviceIdIndex++;
+                        log.info("=============================================================================");*/
                         return path;
                     }
                 }
             }
-        }else {
+        } else {
             for (Path path : paths) {
                 return path;
             }
@@ -799,7 +796,7 @@ public class ReactiveForwarding {
                 .setOutput(portNumber)
                 .build();
 
-        //构建流规则对象，输入流量处理器treatement，selectorBuilder,优先级，appid,流的持续时间
+/*        //构建流规则对象，输入流量处理器treatement，selectorBuilder,优先级，appid,流的持续时间
         ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
                 .withSelector(selectorBuilder.build())
                 .withTreatment(treatment)
@@ -811,7 +808,31 @@ public class ReactiveForwarding {
 
         //通过流对象服务，转发出转发对象。在指定的设备上安装流规则
         flowObjectiveService.forward(context.inPacket().receivedFrom().deviceId(),
-                                     forwardingObjective);
+                                     forwardingObjective);*/
+
+        FlowRule.Builder flowRuleBuilder = DefaultFlowRule.builder()
+                .forDevice(context.inPacket().receivedFrom().deviceId())
+                .withSelector(selectorBuilder.build())
+                .withTreatment(treatment)
+                .withPriority(flowPriority)
+                .fromApp(appId)
+                .withHardTimeout(30);
+
+        FlowRuleOperations.Builder flowOpsBuilder = FlowRuleOperations.builder();
+        flowOpsBuilder = flowOpsBuilder.add(flowRuleBuilder.build());
+
+        flowRuleService.apply(flowOpsBuilder.build(new FlowRuleOperationsContext() {
+            @Override
+            public void onSuccess(FlowRuleOperations ops) {
+                log.debug("FlowRule安装成功");
+            }
+
+            @Override
+            public void onError(FlowRuleOperations ops) {
+                log.debug("Failed to privision vni or forwarding table");
+            }
+        }));
+
         forwardPacket(macMetrics);//增加转发数据包的计数
         //
         // If packetOutOfppTable
@@ -1058,6 +1079,32 @@ public class ReactiveForwarding {
         @Override
         public int hashCode() {
             return Objects.hash(src, dst);
+        }
+    }
+
+    private class TimerThread extends Thread {
+
+        @Override
+        public void run() {
+
+            while (true) {
+                try {
+                    sleep(30000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                linkDestDeviceIdIndex++;
+
+                if (linkDestDeviceIdIndex >= 3) {
+                    linkDestDeviceIdIndex = 0;
+                }
+
+                log.info("============================   linkDestDeviceIdIndex ====================================");
+                log.info(linkDestDeviceIdIndex + ","+linkDestDeviceId.toString());
+                log.info("==================================================================================");
+            }
+
         }
     }
 }
