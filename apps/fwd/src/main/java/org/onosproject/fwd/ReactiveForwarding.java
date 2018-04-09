@@ -135,9 +135,6 @@ public class ReactiveForwarding {
     protected FlowRuleService flowRuleService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
-    protected FlowObjectiveService flowObjectiveService;
-
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -162,6 +159,7 @@ public class ReactiveForwarding {
     @Property(name = "packetOutOnly", boolValue = false,
             label = "Enable packet-out only forwarding; default is false")
     private boolean packetOutOnly = false;
+
     //第一个数据包使用OFPP_TABLE端口转发，而不是使用真实的端口，默认为假
     @Property(name = "packetOutOfppTable", boolValue = false,
             label = "Enable first packet forwarding using OFPP_TABLE port " +
