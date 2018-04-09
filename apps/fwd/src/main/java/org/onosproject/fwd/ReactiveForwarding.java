@@ -90,6 +90,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
@@ -485,6 +486,8 @@ public class ReactiveForwarding {
      */
     private class ReactivePacketProcessor implements PacketProcessor {
 
+        public InboundPacket inboundPacketPre;
+
         @Override
         public void process(PacketContext context) {
             // Stop processing if the packet has been handled, since we
@@ -495,6 +498,14 @@ public class ReactiveForwarding {
             }
 
             InboundPacket pkt = context.inPacket();
+
+            /*if(inboundPacketPre != null){
+                if(pkt.receivedFrom().deviceId().equals(inboundPacketPre.receivedFrom().deviceId())){
+                    return;
+                }
+            }*/
+
+            inboundPacketPre = pkt;
             Ethernet ethPkt = pkt.parsed();//从数据包中解析出以太网的信息
 
             if (ethPkt == null) {
@@ -569,9 +580,6 @@ public class ReactiveForwarding {
             if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01")&&
                     ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")) {
                 path = pickForwardPathByTimeAndLink(paths, pkt);
-                log.info("============================  path   ====================================");
-                log.info(path.toString());
-                log.info("=====================================================================");
             }else {
                 path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
             }
@@ -612,30 +620,41 @@ public class ReactiveForwarding {
     }
 
     private Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
+        linkDestDeviceId.clear();
 
-        linkDestDeviceId = new ArrayList<DeviceId>();
-
-        for (Path path : paths) {
-            for (Link link : path.links()) {
-                if (link.src().deviceId().equals(path.src().deviceId())) {
-                    linkDestDeviceId.add(link.dst().deviceId());
+        if(paths.size()>=2){
+            for (Path path : paths) {
+                for (Link link : path.links()) {
+                    if (link.src().deviceId().equals(path.src().deviceId())) {
+                        linkDestDeviceId.add(link.dst().deviceId());
+                    }
                 }
             }
-        }
 
-        if (linkDestDeviceIdIndex >= linkDestDeviceId.size()) {
-            linkDestDeviceIdIndex = 0;
-        }
+            Collections.sort(linkDestDeviceId);
 
-        for (Path path : paths) {
-            for (Link link : path.links()) {
-                if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
-                    linkDestDeviceIdIndex++;
-                    return path;
+            if (linkDestDeviceIdIndex >= linkDestDeviceId.size()) {
+                linkDestDeviceIdIndex = 0;
+            }
+
+            for (Path path : paths) {
+                for (Link link : path.links()) {
+                    if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
+                        log.info("============================     path     ====================================");
+                        log.info(path.toString());
+                        log.info(linkDestDeviceId.toString()+","+linkDestDeviceIdIndex);
+                        log.info("=============================================================================");
+                        linkDestDeviceIdIndex++;
+                        return path;
+                    }
                 }
             }
+        }else {
+            for (Path path : paths) {
+                return path;
+            }
+            return null;
         }
-
         return null;
     }
 
