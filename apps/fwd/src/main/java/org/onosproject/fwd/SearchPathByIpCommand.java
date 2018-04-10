@@ -31,6 +31,8 @@ public class SearchPathByIpCommand extends AbstractShellCommand{
             System.out.println("========================   SearchPathByIpCommand   =============================");
 
             System.out.println("=============================================================================");
+        }else {
+            System.out.println("========================   参数错误   =============================");
         }
     }
 }

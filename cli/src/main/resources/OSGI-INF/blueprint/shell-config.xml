@@ -925,6 +925,9 @@
         <command>
             <action class="org.onosproject.cli.net.GetDomainsCommand"/>
         </command>
+        <command>
+            <action class="org.onosproject.fwd.SearchPathByIpCommand"></action>
+        </command>
 
     </command-bundle>
 
