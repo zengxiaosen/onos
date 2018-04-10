@@ -32,8 +32,10 @@ import org.onlab.packet.ICMP;
 import org.onlab.packet.ICMP6;
 import org.onlab.packet.IPv4;
 import org.onlab.packet.IPv6;
+import org.onlab.packet.Ip4Address;
 import org.onlab.packet.Ip4Prefix;
 import org.onlab.packet.Ip6Prefix;
+import org.onlab.packet.IpAddress;
 import org.onlab.packet.MacAddress;
 import org.onlab.packet.TCP;
 import org.onlab.packet.TpPort;
@@ -614,6 +616,7 @@ public class ReactiveForwarding {
         return null;
     }
 
+    //按照计数器选择路径
     private synchronized Path pickForwardPathByTimeAndLink(Set<Path> paths) {
 
         linkDestDeviceId.clear();
@@ -649,6 +652,52 @@ public class ReactiveForwarding {
             return null;
         }
         return null;
+    }
+    //
+    public String getPathByIp(String ipSrc,String ipDest){
+
+        Set<Host> srcHostSet = hostService.getHostsByIp(IpAddress.valueOf(ipSrc));
+        Set<Host> destHostSet = hostService.getHostsByIp(IpAddress.valueOf(ipDest));
+
+        if(destHostSet==null||srcHostSet==null){
+            return "没有发现对应IP的主机";
+        }
+
+        Host srcHost = null,destHost=null;
+
+        if(srcHostSet.size()==destHostSet.size()&&destHostSet.size()==1){
+            for(Host h :srcHostSet){
+                srcHost = h;
+            }
+            for(Host h :destHostSet){
+                destHost = h;
+            }
+        }else {
+            return "两个IP地址的主机数量不一样";
+        }
+
+        Set<Path> paths = topologyService.getPaths(topologyService.currentTopology(),
+                                                   srcHost.location().deviceId(),destHost.location().deviceId());
+
+        if (paths.isEmpty()) {
+
+            return "找不到主机间的路径";
+        }
+
+        // Otherwise, pick a path that does not lead back to where we
+        // came from; if no such path, flood and bail.如果存在路径的话，从给定集合中选择一条不返回指定端口的路径。
+        Path path;
+        if (srcHost.mac().toString().equals("00:00:00:00:00:01") &&
+                destHost.mac().toString().equals("00:00:00:00:00:04")) {
+            path = pickForwardPathByTimeAndLink(paths);
+        } else {
+            path = pickForwardPathIfPossible(paths,srcHost.location().port());
+        }
+
+        if (path == null) {
+            return "找不到主机间的路径";
+        }
+        return path.toString();
     }
 
     // Floods the specified packet if permissible.如果允许的话，对该数据包泛洪

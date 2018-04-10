@@ -29,7 +29,8 @@ public class SearchPathByIpCommand extends AbstractShellCommand{
         MacAddress macAddress = null;
         if (ipDst != null&&ipSrc!=null) {
             System.out.println("========================   SearchPathByIpCommand   =============================");
-
+            String path = reactiveForwardingService.getPathByIp(ipSrc,ipDst);
+            System.out.println(path);
             System.out.println("=============================================================================");
         }else {
             System.out.println("========================   参数错误   =============================");
