@@ -116,6 +116,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class ReactiveForwarding {
     //默认超时时间
     private static final int DEFAULT_TIMEOUT = 30;
+
+    private static final int HARD_TIMEOUT = 10;
     //默认优先级
     private static final int DEFAULT_PRIORITY = 10;
 
@@ -613,7 +615,7 @@ public class ReactiveForwarding {
         return null;
     }
 
-    private Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
+    private synchronized Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
 
         linkDestDeviceId.clear();
 
@@ -626,9 +628,6 @@ public class ReactiveForwarding {
                 }
             }
             if (linkDestDeviceId.size() != 3 ) {
-                log.info("============================  linked dest device id  =====================================");
-                log.info(linkDestDeviceId.toString());
-                log.info("=============================================================================");
                 return null;
             }
             Collections.sort(linkDestDeviceId);
@@ -814,7 +813,7 @@ public class ReactiveForwarding {
                 .withTreatment(treatment)
                 .withPriority(flowPriority)
                 .fromApp(appId)
-                .withHardTimeout(30);
+                .withHardTimeout(HARD_TIMEOUT);
 
         FlowRuleOperations.Builder flowOpsBuilder = FlowRuleOperations.builder();
         flowOpsBuilder = flowOpsBuilder.add(flowRuleBuilder.build());
@@ -1087,7 +1086,7 @@ public class ReactiveForwarding {
 
             while (true) {
                 try {
-                    sleep(30000);
+                    sleep(HARD_TIMEOUT*1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
