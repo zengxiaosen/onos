@@ -574,7 +574,6 @@ public class ReactiveForwarding {
             if (ethPkt.getSourceMAC().toString().equals("00:00:00:00:00:01") &&
                     ethPkt.getDestinationMAC().toString().equals("00:00:00:00:00:04")) {
                 path = pickForwardPathByTimeAndLink(paths, pkt);
-
             } else {
                 path = pickForwardPathIfPossible(paths, pkt.receivedFrom().port());
             }
@@ -615,7 +614,7 @@ public class ReactiveForwarding {
         return null;
     }
 
-    private synchronized Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {
+    private synchronized Path pickForwardPathByTimeAndLink(Set<Path> paths, InboundPacket pkc) {git 
 
         linkDestDeviceId.clear();
 
@@ -635,10 +634,10 @@ public class ReactiveForwarding {
             for (Path path : paths) {
                 for (Link link : path.links()) {
                     if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
-                        /*log.info("============================     path     ====================================");
+                        log.info("============================     path     ====================================");
                         log.info(path.toString());
                         log.info(linkDestDeviceId.toString()+","+linkDestDeviceIdIndex);
-                        log.info("=============================================================================");*/
+                        log.info("=============================================================================");
                         return path;
                     }
                 }
