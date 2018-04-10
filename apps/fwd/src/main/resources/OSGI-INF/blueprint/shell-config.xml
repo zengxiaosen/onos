@@ -21,6 +21,9 @@
             <ref component-id="MacAddressCompleter"/>
             </completers>
         </command>
+        <command>
+            <action class="org.onosproject.fwd.SearchPathByIpCommand"/>
+        </command>
     </command-bundle>
     <bean id="MacAddressCompleter" class="org.onosproject.fwd.MacAddressCompleter"/>
 </blueprint>

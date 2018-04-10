@@ -12,14 +12,14 @@ import org.onlab.packet.MacAddress;
 /**
  *  根据IP地址找出路径
  */
-@Command(scope = "onos", name = "fwd-apbi",
+@Command(scope = "onos", name = "fwd-spbi",
         description = "根据输入的IP地址对查找路径")
 public class SearchPathByIpCommand extends AbstractShellCommand{
 
     @Argument(index = 0, name = "ipSrc", description = "源IP地址",
             required = true, multiValued = false)
     String ipSrc = null;
-    @Argument(index = 0, name = "ipDst", description = "目的IP地址",
+    @Argument(index = 1, name = "ipDst", description = "目的IP地址",
             required = true, multiValued = false)
     String ipDst = null;
 
