@@ -637,10 +637,10 @@ public class ReactiveForwarding {
             for (Path path : paths) {
                 for (Link link : path.links()) {
                     if (link.dst().deviceId().equals(linkDestDeviceId.get(linkDestDeviceIdIndex))) {
-                        log.info("============================     path     ====================================");
+                       /* log.info("============================     path     ====================================");
                         log.info(path.toString());
                         log.info(linkDestDeviceId.toString()+","+linkDestDeviceIdIndex);
-                        log.info("=============================================================================");
+                        log.info("=============================================================================");*/
                         return path;
                     }
                 }
@@ -1148,9 +1148,9 @@ public class ReactiveForwarding {
                     linkDestDeviceIdIndex = 0;
                 }
 
-                log.info("============================   linkDestDeviceIdIndex ====================================");
+               /* log.info("============================   linkDestDeviceIdIndex ====================================");
                 log.info(linkDestDeviceIdIndex + ","+linkDestDeviceId.toString());
-                log.info("==================================================================================");
+                log.info("==================================================================================");*/
             }
 
         }
