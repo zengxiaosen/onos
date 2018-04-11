@@ -27,6 +27,7 @@ import org.onosproject.event.ListenerService;
 
 /**
  * Basis for components which need to export listener mechanism.
+ * 监听器机制需要导出的基础组件
  */
 @Component
 public abstract class AbstractListenerProviderRegistry<E extends Event, L extends EventListener<E>,
@@ -55,6 +56,7 @@ public abstract class AbstractListenerProviderRegistry<E extends Event, L extend
      * Safely posts the specified event to the local event dispatcher.
      * If there is no event dispatcher or if the event is null, this method
      * is a noop.
+     * 将指定的事件安全地发布到本地事件分派器。 如果没有事件调度程序或事件为空，则此方法为noop(空操作)
      *
      * @param event event to be posted; may be null
      */

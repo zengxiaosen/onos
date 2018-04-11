@@ -20,11 +20,13 @@ import java.util.Set;
 /**
  * Abstraction of an event sink registry capable of tracking sinks based on
  * their event class.
+ * 基于事件的类别的,事件追踪器注册抽象
  */
 public interface EventSinkRegistry {
 
     /**
      * Adds the specified sink for the given event class.
+     * 给指定的事件类添加特定的追踪器
      *
      * @param eventClass event class
      * @param sink       event sink
@@ -42,6 +44,7 @@ public interface EventSinkRegistry {
 
     /**
      * Returns the event sink associated with the specified event class.
+     * 返回特定事件类的事件追踪器
      *
      * @param eventClass event class
      * @param <E>        type of event
@@ -52,6 +55,7 @@ public interface EventSinkRegistry {
     /**
      * Returns the set of all event classes for which sinks are presently
      * registered.
+     * 返回追踪器当前注册的事件类
      *
      * @return set of event classes
      */

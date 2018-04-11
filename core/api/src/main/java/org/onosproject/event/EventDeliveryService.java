@@ -18,6 +18,7 @@ package org.onosproject.event;
 /**
  * Abstraction of an entity capable of accepting events to be posted and
  * then dispatching them to the appropriate event sink.
+ * 抽象能够接受要发布的事件的实体，然后将它们分派到适当的事件接收器。
  */
 public interface EventDeliveryService extends EventDispatcher, EventSinkRegistry {
 

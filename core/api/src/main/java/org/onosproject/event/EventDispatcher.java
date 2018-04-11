@@ -20,6 +20,8 @@ package org.onosproject.event;
  * appropriate event sinks. Where the event sinks are obtained is unspecified.
  * Similarly, whether the events are accepted and dispatched synchronously
  * or asynchronously is unspecified as well.
+ * 抽象能够接受和派发事件到合适事件接收器的机制。 没有指定事件接收器的地址。类似地，事件是
+ * 否被同步或异步接受和分派也没有被指定。
  */
 public interface EventDispatcher {
 
