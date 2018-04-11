@@ -676,6 +676,10 @@ public class ReactiveForwarding {
             return "两个IP地址的主机数量不一样";
         }
 
+        if(srcHost.location().deviceId().toString().equals(destHost.location().deviceId().toString())){
+            return srcHost.location().deviceId().toString();
+        }
+
         Set<Path> paths = topologyService.getPaths(topologyService.currentTopology(),
                                                    srcHost.location().deviceId(),destHost.location().deviceId());
 
