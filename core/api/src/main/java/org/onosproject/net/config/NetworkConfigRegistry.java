@@ -25,6 +25,8 @@ import java.util.Set;
  * own configuration factories that permit use to inject additional meta
  * information about how various parts of the network should be viewed and
  * treated.
+ * 用于跟踪网络配置工厂的服务。 这是可扩展的基础，允许各种核心子系统或应用程序注册他们自
+ * 己的配置工厂，允许用户注入有关如何查看和处理网络各个部分的额外元信息。
  */
 @Beta
 public interface NetworkConfigRegistry extends NetworkConfigService {

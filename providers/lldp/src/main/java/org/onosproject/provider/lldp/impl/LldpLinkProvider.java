@@ -93,6 +93,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Provider which uses LLDP and BDDP packets to detect network infrastructure links.
+ * 使用LLDP和BDDP数据包检测网络基础设施链路的提供着
  */
 @Component(immediate = true)
 public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProvider {
@@ -149,6 +150,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
     private boolean shuttingDown = false;
 
     // TODO: Add sanity checking for the configurable params based on the delays
+    //根据延迟添加可配置参数的健全性检查
     private static final long DEVICE_SYNC_DELAY = 5;
     private static final long LINK_PRUNER_DELAY = 3;
 
@@ -176,10 +178,12 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     private final LinkDiscoveryContext context = new InternalDiscoveryContext();
     private final InternalRoleListener roleListener = new InternalRoleListener();
+
+    //内部类
     private final InternalDeviceListener deviceListener = new InternalDeviceListener();
     private final InternalPacketProcessor packetProcessor = new InternalPacketProcessor();
 
-    // Device link discovery helpers.
+    // Device link discovery helpers.设备链路发现助手
     protected final Map<DeviceId, LinkDiscovery> discoverers = new ConcurrentHashMap<>();
 
     // Most recent time a tracked link was seen; links are tracked if their
@@ -188,6 +192,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     private ApplicationId appId;
 
+    //默认规则??
     static final SuppressionRules DEFAULT_RULES
         = new SuppressionRules(EnumSet.of(Device.Type.ROADM,
                                           Device.Type.FIBER_SWITCH,
@@ -225,10 +230,12 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
             }
     );
 
+    //内部类
     private final InternalConfigListener cfgListener = new InternalConfigListener();
 
     /**
      * Creates an OpenFlow link provider.
+     * 创建OpenFlow链接提供程序。
      */
     public LldpLinkProvider() {
         super(new ProviderId("lldp", PROVIDER_NAME));
@@ -342,6 +349,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Enables link discovery processing.
+     * 启用链接发现处理。
      */
     private void enable() {
         providerService = providerRegistry.register(this);
@@ -562,6 +570,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Processes device mastership role changes.
+     * 处理设备主控角色更改。
      */
     private class InternalRoleListener implements MastershipListener {
         @Override
@@ -581,6 +590,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         }
     }
 
+    //设备时间处理线程,在设备事件发生时启动
     private class DeviceEventProcessor implements Runnable {
 
         DeviceEvent event;
@@ -647,10 +657,12 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Processes device events.
+     * 处理设备事件
      */
     private class InternalDeviceListener implements DeviceListener {
         @Override
         public void event(DeviceEvent event) {
+            // 过滤掉端口状态更新类型
             if (event.type() == Type.PORT_STATS_UPDATED) {
                 return;
             }
@@ -663,6 +675,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Processes incoming packets.
+     * 处理收到的数据包
      */
     private class InternalPacketProcessor implements PacketProcessor {
         @Override
@@ -676,6 +689,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
                 return;
             }
 
+            //根据设备id得到其发现的链路
             LinkDiscovery ld = discoverers.get(context.inPacket().receivedFrom().deviceId());
             if (ld == null) {
                 return;
@@ -689,6 +703,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Auxiliary task to keep device ports up to date.
+     * 辅助任务来保持设备端口最新
      */
     private final class SyncDeviceInfoTask implements Runnable {
         @Override
@@ -709,6 +724,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Auxiliary task for pruning stale links.
+     * 修剪陈旧链接的辅助任务。
      */
     private class LinkPrunerTask implements Runnable {
         @Override
@@ -754,6 +770,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Provides processing context for the device link discovery helpers.
+     * 为设备链路发现助手提供处理上下文
      */
     private class InternalDiscoveryContext implements LinkDiscoveryContext {
         @Override
@@ -804,6 +821,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     private class InternalConfigListener implements NetworkConfigListener {
 
+        //重新配置禁止规则
         private synchronized void reconfigureSuppressionRules(SuppressionConfig cfg) {
             if (cfg == null) {
                 log.debug("Suppression Config is null.");

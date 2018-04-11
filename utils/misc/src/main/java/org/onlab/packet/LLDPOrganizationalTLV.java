@@ -35,7 +35,7 @@ import java.util.Arrays;
 
 /**
  * The class representing LLDP Organizationally Specific TLV.
- *
+ * 代表LLDP组织特定TLV的类
  */
 public class LLDPOrganizationalTLV extends LLDPTLV {
     public static final int OUI_LENGTH = 3;

@@ -24,6 +24,7 @@ import org.onosproject.cluster.ClusterMetadata;
 /**
  * Abstraction for an entity that provides information about infrastructure
  * links that are discovered or verified using probe messages.
+ * 使用探测消息提供发现或验证基础结构链接信息的实体的抽象。
  */
 public interface ProbedLinkProvider extends LinkProvider {
 

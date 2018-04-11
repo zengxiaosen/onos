@@ -29,6 +29,7 @@ import static org.onlab.packet.LLDPOrganizationalTLV.SUBTYPE_LENGTH;
 
 /**
  *  ONOS LLDP containing organizational TLV for ONOS device discovery.
+ *  包含用于ONOS设备发现的组织TLV的ONOS LLDP。
  */
 public class ONOSLLDP extends LLDP {
 

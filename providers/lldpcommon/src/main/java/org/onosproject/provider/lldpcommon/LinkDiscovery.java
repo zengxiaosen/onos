@@ -54,6 +54,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * fast. Every probeRate milliseconds, loop over all fast ports and send an
  * LLDP, send an LLDP for a single slow port. Based on FlowVisor topology
  * discovery implementation.
+ * 从物理交换机运行发现过程。 端口最初标记为慢端口。 成功接收到LLDP时，请将远程端口标记为快速。
+ * 每个probeRate毫秒，遍历所有快速端口并发送LLDP，为单个低速端口发送LLDP。
+ * 基于FlowVisor拓扑发现实现。
  */
 public class LinkDiscovery implements TimerTask {
 
@@ -146,7 +149,7 @@ public class LinkDiscovery implements TimerTask {
     /**
      * Handles an incoming LLDP packet. Creates link in topology and adds the
      * link for staleness tracking.
-     *
+     * 处理传入的LLDP数据包。 在拓扑结构中创建链接并添加链接以进行陈旧度跟踪。
      * @param packetContext packet context
      * @return true if handled
      */
