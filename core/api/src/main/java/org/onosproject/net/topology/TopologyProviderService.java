@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * Means for injecting topology information into the core.
+ * 将拓扑信息注入内核的方法。
  */
 public interface TopologyProviderService extends ProviderService<TopologyProvider> {
 

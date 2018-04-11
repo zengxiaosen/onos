@@ -58,6 +58,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Provides basic implementation of the topology SB &amp; NB APIs.
+ * 提供拓扑的南向北向API实现
  */
 @Component(immediate = true)
 @Service
@@ -75,6 +76,7 @@ public class TopologyManager
 
     private final Logger log = getLogger(getClass());
 
+    //拓扑存储代表抽象。
     private TopologyStoreDelegate delegate = new InternalStoreDelegate();
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -83,6 +85,7 @@ public class TopologyManager
     @Activate
     public void activate() {
         store.setDelegate(delegate);
+        //从AbstractListenerProviderRegistry继承而来
         eventDispatcher.addSink(TopologyEvent.class, listenerRegistry);
         log.info("Started");
     }

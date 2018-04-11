@@ -32,6 +32,7 @@ import java.util.Map;
 
 /**
  * Manages inventory of topology snapshots; not intended for direct use.
+ * 管理拓扑快照的清单; 不打算直接使用。
  */
 public interface TopologyStore extends Store<TopologyEvent, TopologyStoreDelegate> {
 

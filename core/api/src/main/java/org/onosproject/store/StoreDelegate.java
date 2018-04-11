@@ -20,6 +20,7 @@ import org.onosproject.event.Event;
 /**
  * Entity associated with a store and capable of receiving notifications of
  * events within the store.
+ * 与存储关联的实体，能够接收存储内的事件通知。
  */
 public interface StoreDelegate<E extends Event> {
 
