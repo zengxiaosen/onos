@@ -684,7 +684,6 @@ public class ReactiveForwarding {
                                                    srcHost.location().deviceId(),destHost.location().deviceId());
 
         if (paths.isEmpty()) {
-
             return "找不到主机间的路径";
         }
 
