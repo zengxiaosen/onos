@@ -23,6 +23,8 @@ import org.onosproject.net.packet.PacketService;
 
 /**
  * Shared context for use by link discovery.
+ * 共享链接发现上下文以供使用
+ * 由LldpLinkProvider的内部类实现
  */
 public interface LinkDiscoveryContext {
 
@@ -70,6 +72,7 @@ public interface LinkDiscoveryContext {
 
     /**
      * Touches the link identified by the given key to indicate that it's active.
+     * 触摸由给定键标识的链接以指示其处于活动状态。
      *
      * @param key link key
      */
@@ -77,6 +80,7 @@ public interface LinkDiscoveryContext {
 
     /**
      * Returns the cluster-wide unique identifier.
+     * 返回群集范围的唯一标识符。
      *
      * @return the cluster identifier
      */

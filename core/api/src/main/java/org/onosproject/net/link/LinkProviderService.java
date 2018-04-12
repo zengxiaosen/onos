@@ -21,6 +21,7 @@ import org.onosproject.net.provider.ProviderService;
 
 /**
  * Means for injecting link information into the core.
+ * 向onos core注入链接信息的方法.
  */
 public interface LinkProviderService extends ProviderService<LinkProvider> {
 

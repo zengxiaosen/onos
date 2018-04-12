@@ -27,7 +27,7 @@ import org.onosproject.event.ListenerService;
 
 /**
  * Basis for components which need to export listener mechanism.
- * 监听器机制需要导出的基础组件
+ * 监听器机制需要导出的基础组件,onos事件驱动的基础,Manager需要继承的模板
  */
 @Component
 public abstract class AbstractListenerProviderRegistry<E extends Event, L extends EventListener<E>,
