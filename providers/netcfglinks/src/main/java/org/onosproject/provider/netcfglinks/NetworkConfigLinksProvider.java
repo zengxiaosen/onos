@@ -73,6 +73,7 @@ import static org.onosproject.net.PortNumber.portNumber;
 /**
  * Provider to pre-discover links and devices based on a specified network
  * config.
+ * 根据指定的网络配置预先发现链接和设备的Provider。
  */
 
 @Component(immediate = true)
