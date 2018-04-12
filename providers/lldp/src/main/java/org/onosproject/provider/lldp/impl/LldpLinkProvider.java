@@ -119,7 +119,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected LinkProviderRegistry providerRegistry;
 
-    //链接ProviderService,不是此类需要OSGi引用的服务
+    //链接ProviderService,不是此类需要OSGi引用的服务,
     private LinkProviderService providerService;
 
     //链接服务
@@ -195,7 +195,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
     //内部类,处理数据包
     private final InternalPacketProcessor packetProcessor = new InternalPacketProcessor();
 
-    // Device link discovery helpers.设备链路发现助手
+    // Device link discovery helpers.设备链路发现助手,存储设备Id和设备上的端口信息
     protected final Map<DeviceId, LinkDiscovery> discoverers = new ConcurrentHashMap<>();
 
     // Most recent time a tracked link was seen; links are tracked if their
@@ -489,6 +489,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
             return Optional.empty();
         }
 
+        //更新LinkDiscovery.
         LinkDiscovery ld = discoverers.computeIfAbsent(device.id(),
                                      did -> new LinkDiscovery(device, context));
         if (ld.isStopped()) {
@@ -546,6 +547,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
             return;
         }
 
+        //向链路发现添加端口
         discoverer.addPort(port);
     }
 
@@ -732,7 +734,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
             if (ld == null) {
                 return;
             }
-
+            //调用LinkDiscovery处理LLDP数据包
             if (ld.handleLldp(context)) {
                 context.block();
             }

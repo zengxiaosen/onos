@@ -163,13 +163,16 @@ public class LinkDiscovery implements TimerTask {
         ONOSLLDP onoslldp = ONOSLLDP.parseONOSLLDP(eth);
         if (onoslldp != null) {
             Type lt;
+            //判断是否是集群自己的探测
             if (notMy(eth.getSourceMAC().toString())) {
                 lt = Type.EDGE;
             } else {
+                //链接类型
                 lt = eth.getEtherType() == Ethernet.TYPE_LLDP ?
                         Type.DIRECT : Type.INDIRECT;
             }
 
+            //从数据包中解析出源MAC端口
             PortNumber srcPort = portNumber(onoslldp.getPort());
             PortNumber dstPort = packetContext.inPacket().receivedFrom().port();
 
@@ -182,8 +185,16 @@ public class LinkDiscovery implements TimerTask {
                 ConnectPoint dst = new ConnectPoint(dstDeviceId, dstPort);
 
                 LinkDescription ld = new DefaultLinkDescription(src, dst, lt);
+
+                //输出收到的ONOS_LLDP数据包
+                log.info("************************Link Discovery*****************************");
+                log.info(onoslldp.toString());
+                log.info("*****************************************************");
                 try {
+                    //调用LinkProviderService添加链接到core,context.providerService()
+                    //返回的其实是LldpLinkProvider中的LinkProviderService
                     context.providerService().linkDetected(ld);
+                    //将链接信息添加到LldpLinkProvider的linkTimes map中
                     context.touchLink(LinkKey.linkKey(src, dst));
                 } catch (IllegalStateException e) {
                     return true;
@@ -195,6 +206,7 @@ public class LinkDiscovery implements TimerTask {
     }
 
     // true if *NOT* this cluster's own probe.
+    ////判断是否是集群自己的探测
     private boolean notMy(String mac) {
         // if we are using DEFAULT_MAC, clustering hadn't initialized, so conservative 'yes'
         String ourMac = context.fingerprint();
@@ -208,6 +220,9 @@ public class LinkDiscovery implements TimerTask {
      * Execute this method every t milliseconds. Loops over all ports
      * labeled as fast and sends out an LLDP. Send out an LLDP on a single slow
      * port.
+     *
+     * 每t毫秒执行一次该方法。 在所有标记为快速的端口上循环并发送LLDP。
+     * 在单个慢速端口上发送LLDP。
      *
      * @param t timeout
      */
@@ -229,6 +244,7 @@ public class LinkDiscovery implements TimerTask {
 
     /**
      * Creates packet_out LLDP for specified output port.
+     * 为特定的端口创建LLDP packet_out数据包
      *
      * @param port the port
      * @return Packet_out message with LLDP data
