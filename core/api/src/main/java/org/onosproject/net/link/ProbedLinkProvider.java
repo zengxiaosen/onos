@@ -40,6 +40,7 @@ public interface ProbedLinkProvider extends LinkProvider {
      *
      * 为了唯一性，使用ClusterMetadata哈希构建字符串化的MAC地址。 MAC的形式是“02：eb”，
      * 接着是四个字节的clusterMetadata散列。
+     * 返回群集范围的唯一标识符
      *
      * @param cm cluster metadata
      * @return stringified mac address
