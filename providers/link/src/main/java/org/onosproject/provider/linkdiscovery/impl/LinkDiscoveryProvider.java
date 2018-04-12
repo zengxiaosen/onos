@@ -63,6 +63,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Link provider capable of polling the environment using the device driver
+ * 链接提供者能够使用设备驱动程序轮询环境,此类似乎没有被其他应用用到
  * {@link LinkDiscovery} behaviour.
  */
 @Component(immediate = true)
