@@ -33,6 +33,7 @@ public interface NetworkConfigRegistry extends NetworkConfigService {
 
     /**
      * Registers the specified configuration factory.
+     * 注册特定的配置工厂
      *
      * @param configFactory configuration factory
      */

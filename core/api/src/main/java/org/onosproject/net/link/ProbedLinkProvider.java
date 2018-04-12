@@ -38,6 +38,9 @@ public interface ProbedLinkProvider extends LinkProvider {
      * Build a stringified MAC address using the ClusterMetadata hash for uniqueness.
      * Form of MAC is "02:eb" followed by four bytes of clusterMetadata hash.
      *
+     * 为了唯一性，使用ClusterMetadata哈希构建字符串化的MAC地址。 MAC的形式是“02：eb”，
+     * 接着是四个字节的clusterMetadata散列。
+     *
      * @param cm cluster metadata
      * @return stringified mac address
      */

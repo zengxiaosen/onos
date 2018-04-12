@@ -20,7 +20,7 @@ import com.google.common.annotations.Beta;
 
 /**
  * Base abstract factory for creating configurations for the specified subject type.
- *
+ * 基础抽象工厂，用于为指定的主题类型创建配置。
  * @param <S> type of subject
  * @param <C> type of configuration
  */
@@ -37,6 +37,8 @@ public abstract class ConfigFactory<S, C extends Config<S>> {
      * capable of generating the configurations of the specified class. The
      * subject and configuration class keys are used merely as keys for use in
      * composite JSON trees.
+     * 为能够生成指定类的配置的指定类别的主题创建新的配置工厂。
+     * 主题和配置类键仅用作复合JSON树中的键。
      *
      * @param subjectFactory subject factory
      * @param configClass    configuration class

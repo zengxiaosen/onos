@@ -37,6 +37,7 @@ public class MacAddress {
     public static final MacAddress NONE = ONOS;
     /**
      * ONOS LLDP MAC address with slow protocol destination address.
+     * ONOS LLDP MAC地址与慢协议目标地址。
      */
     public static final MacAddress ONOS_LLDP = valueOf("01:80:C2:00:00:0E");
     /**

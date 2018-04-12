@@ -48,6 +48,7 @@ import static org.onosproject.security.AppPermission.Type.*;
 
 /**
  * Implementation of the network configuration subsystem.
+ * 网络配置子系统的实现
  */
 @Component(immediate = true)
 @Service

@@ -20,6 +20,7 @@ import org.onosproject.net.config.basics.BasicFeatureConfig;
 
 /**
  * Configuration to see LinkDiscovery should be enabled on Device.
+ * 在Device上启用配置以查看LinkDiscovery。
  */
 public class LinkDiscoveryFromDevice extends BasicFeatureConfig<DeviceId> {
 

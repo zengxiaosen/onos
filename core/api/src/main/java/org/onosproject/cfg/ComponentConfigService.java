@@ -19,6 +19,7 @@ import java.util.Set;
 
 /**
  * Service for tracking system-wide configurations for various software components.
+ * 用于跟踪各种软件组件的系统范围配置的服务。
  */
 public interface ComponentConfigService {
 

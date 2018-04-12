@@ -19,6 +19,7 @@ import org.onosproject.event.EventListener;
 
 /**
  * Entity capable of receiving network configuration related events.
+ * 能够接收网络配置相关事件的实体。
  */
 public interface NetworkConfigListener extends EventListener<NetworkConfigEvent> {
 }

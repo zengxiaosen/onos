@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Abstraction of a network connection point expressed as a pair of the
  * network element identifier and port number.
+ * 网络连接点的抽象表示为一对网络元素标识符和端口号。
  */
 public class ConnectPoint implements Comparable<ConnectPoint> {
 

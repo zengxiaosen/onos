@@ -19,6 +19,7 @@ import org.onosproject.event.ListenerService;
 
 /**
  * Service for accessing {@link ClusterMetadata cluster metadata}.
+ * 获取 ClusterMetadata的元数据的服务
  */
 public interface ClusterMetadataService
     extends ListenerService<ClusterMetadataEvent, ClusterMetadataEventListener> {
