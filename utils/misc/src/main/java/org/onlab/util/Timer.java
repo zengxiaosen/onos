@@ -27,6 +27,7 @@ import io.netty.util.TimerTask;
 /**
  * Hashed-wheel timer singleton. Care must be taken to shutdown the timer
  * only when the VM is ready to exit.
+ * 哈希轮定时器单件。 只有当VM准备好退出时，必须小心关闭定时器。
  */
 public final class Timer {
 
