@@ -64,6 +64,7 @@ import static org.onosproject.security.AppPermission.Type.*;
 
 /**
  * Provides basic implementation of the link SB &amp; NB APIs.
+ * 链路的南北向API接口实现,负责将链路信息注册到core,和上层来管理链路
  */
 @Component(immediate = true)
 @Service
