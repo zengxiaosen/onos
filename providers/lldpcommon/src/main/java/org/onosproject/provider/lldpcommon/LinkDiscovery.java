@@ -126,6 +126,7 @@ public class LinkDiscovery implements TimerTask {
     /**
      * Add physical port to discovery process.
      * Send out initial LLDP and label it as slow port.
+     * 根据发现处理添加物理端口,发送初始化的LLDP数据包并标记为慢端口
      *
      * @param port the port
      */
@@ -264,6 +265,7 @@ public class LinkDiscovery implements TimerTask {
         return ONOSLLDP.onosLLDP(device.id().toString(), device.chassisId(), port.intValue());
     }
 
+    //向端口发送LLDP数据包进行探测
     private void sendProbes(Long portNumber) {
         if (context.packetService() == null) {
             return;

@@ -115,14 +115,19 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
 
+    //链接Provider注册
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected LinkProviderRegistry providerRegistry;
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
-    protected DeviceService deviceService;
+    //链接ProviderService,不是此类需要OSGi引用的服务
+    private LinkProviderService providerService;
 
+    //链接服务
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected LinkService linkService;
+
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
+    protected DeviceService deviceService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected PacketService packetService;
@@ -130,19 +135,19 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected MastershipService masterService;
 
+    //组件配置服务
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected ComponentConfigService cfgService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected ClusterService clusterService;
 
+    //网络配置注册
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected NetworkConfigRegistry cfgRegistry;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected ClusterMetadataService clusterMetadataService;
-
-    private LinkProviderService providerService;
 
     private ScheduledExecutorService executor;
     protected ExecutorService eventExecutor;
@@ -166,21 +171,28 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     private static final String PROP_PROBE_RATE = "probeRate";
     private static final int DEFAULT_PROBE_RATE = 3000;
+
+    //LLDP探测率,ms为单位
     @Property(name = PROP_PROBE_RATE, intValue = DEFAULT_PROBE_RATE,
             label = "LLDP and BDDP probe rate specified in millis")
     private int probeRate = DEFAULT_PROBE_RATE;
 
+    //陈旧链接年龄
     private static final String PROP_STALE_LINK_AGE = "staleLinkAge";
+    //默认陈旧链接年龄
     private static final int DEFAULT_STALE_LINK_AGE = 10000;
+
     @Property(name = PROP_STALE_LINK_AGE, intValue = DEFAULT_STALE_LINK_AGE,
             label = "Number of millis beyond which links will be considered stale")
     private int staleLinkAge = DEFAULT_STALE_LINK_AGE;
 
+    //内部类,链路发现上下文环境
     private final LinkDiscoveryContext context = new InternalDiscoveryContext();
+    //内部类,处理设备master角色改变
     private final InternalRoleListener roleListener = new InternalRoleListener();
-
-    //内部类
+    //内部类,处理设备事件
     private final InternalDeviceListener deviceListener = new InternalDeviceListener();
+    //内部类,处理数据包
     private final InternalPacketProcessor packetProcessor = new InternalPacketProcessor();
 
     // Device link discovery helpers.设备链路发现助手
@@ -188,11 +200,12 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     // Most recent time a tracked link was seen; links are tracked if their
     // destination connection point is mastered by this controller instance.
+    //最近一次有人看到一个跟踪的链接; 如果目标连接点由此控制器实例掌握，则跟踪链接。
     private final Map<LinkKey, Long> linkTimes = Maps.newConcurrentMap();
 
     private ApplicationId appId;
 
-    //默认规则??
+    //默认 禁止/限制 规则??
     static final SuppressionRules DEFAULT_RULES
         = new SuppressionRules(EnumSet.of(Device.Type.ROADM,
                                           Device.Type.FIBER_SWITCH,
@@ -205,6 +218,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
     public static final String CONFIG_KEY = "suppression";
     public static final String FEATURE_NAME = "linkDiscovery";
 
+    //创建一个不可变的配置工厂类的集合
     private final Set<ConfigFactory<?, ?>> factories = ImmutableSet.of(
             new ConfigFactory<ApplicationId, SuppressionConfig>(APP_SUBJECT_FACTORY,
                     SuppressionConfig.class,
@@ -230,7 +244,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
             }
     );
 
-    //内部类
+    //内部类,能够接收网络配置相关事件的实体。
     private final InternalConfigListener cfgListener = new InternalConfigListener();
 
     /**
@@ -259,6 +273,12 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     @Activate
     public void activate(ComponentContext context) {
+        /* 创建一个单线程执行程序，可以安排命令在给定延迟后运行，或定期执行。
+        （但是请注意，如果这个单线程在关闭之前由于执行期间的失败而终止，那么
+        如果需要执行后续任务，需要创建一个新的singThread取代它。）保证任务顺序执行，并且
+        在任何给定的时间不会有多余一个任务处于活动状态.与其他等效的newScheduledThreadPool
+        （1，threadFactory）不同，返回的执行程序保证不会被重新配置为使用其他线程。*/
+        //java.util.concurrent.Excutors的静态方法
         eventExecutor = newSingleThreadScheduledExecutor(groupedThreads("onos/linkevents", "events-%d", log));
         shuttingDown = false;
         cfgService.registerProperties(getClass());
@@ -267,6 +287,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         cfgRegistry.addListener(cfgListener);
         factories.forEach(cfgRegistry::registerConfigFactory);
 
+        //从网络配置注册中得到禁止配置
         SuppressionConfig cfg = cfgRegistry.getConfig(appId, SuppressionConfig.class);
         if (cfg == null) {
             // If no configuration is found, register default.
@@ -360,16 +381,22 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         loadDevices();
 
         executor = newSingleThreadScheduledExecutor(groupedThreads("onos/link", "discovery-%d", log));
+        /* 创建并执行一个定期动作，在给定的初始延迟之后首先变为启用，然后在给定的时间段内启用;
+        即执行将在{initialCode initialDelay}之后开始，然后是initialDelay + period，
+        然后是initialDelay + 2 * period}，依此类推。 如果任务的任何执行遇到异常，则后续
+        执行被禁止。 否则，任务将仅通过取消或终止执行者而终止。 如果任务的执行时间比其周期长，则后
+        续执行可能会晚点，但不会同时执行。*/
         executor.scheduleAtFixedRate(new SyncDeviceInfoTask(),
                                      DEVICE_SYNC_DELAY, DEVICE_SYNC_DELAY, SECONDS);
         executor.scheduleAtFixedRate(new LinkPrunerTask(),
                                      LINK_PRUNER_DELAY, LINK_PRUNER_DELAY, SECONDS);
-
+        //拦截数据包
         requestIntercepts();
     }
 
     /**
      * Disables link discovery processing.
+     * 停止链路发现处理
      */
     private void disable() {
         withdrawIntercepts();
@@ -391,16 +418,20 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Loads available devices and registers their ports to be probed.
+     * 在active方法中调用
+     * 加载可得到的所有的设备并且将他们的端口注册来探测
      */
     private void loadDevices() {
         if (!enabled || deviceService == null) {
             return;
         }
+        //更新所有的设备及其端口
         deviceService.getAvailableDevices()
                 .forEach(d -> updateDevice(d)
                                .ifPresent(ld -> updatePorts(ld, d.id())));
     }
 
+    //判断设备是否在黑名单中
     private boolean isBlacklisted(DeviceId did) {
         LinkDiscoveryFromDevice cfg = cfgRegistry.getConfig(did, LinkDiscoveryFromDevice.class);
         if (cfg == null) {
@@ -409,6 +440,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         return !cfg.enabled();
     }
 
+    //判断设备是否在黑名单中,如果设备在黑名单则该设备的端口也在黑名单.
     private boolean isBlacklisted(ConnectPoint cp) {
         // if parent device is blacklisted, so is the port
         if (isBlacklisted(cp.deviceId())) {
@@ -427,10 +459,10 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Updates discovery helper for specified device.
-     *
+     * 更新特定设备的发现助手
      * Adds and starts a discovery helper for specified device if enabled,
      * calls {@link #removeDevice(DeviceId)} otherwise.
-     *
+     * 如果允许,给特定的设备添加和启动一个发现助手
      * @param device device to add
      * @return discovery helper if discovery is enabled for the device
      */
@@ -479,6 +511,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Updates ports of the specified device to the specified discovery helper.
+     * 根据特定的发现助手,更新特定设备的端口
      */
     private void updatePorts(LinkDiscovery discoverer, DeviceId deviceId) {
         deviceService.getPorts(deviceId).forEach(p -> updatePort(discoverer, p));
@@ -486,6 +519,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Updates discovery helper state of the specified port.
+     * 更新特定端口的发现助手的状态
      *
      * Adds a port to the discovery helper if up and discovery is enabled,
      * or calls {@link #removePort(Port)} otherwise.
@@ -496,6 +530,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         }
         if (port.number().isLogical()) {
             // silently ignore logical ports
+            //忽略逻辑端口
             return;
         }
 
@@ -532,6 +567,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Requests packet intercepts.
+     * 请求数据包拦截
      */
     private void requestIntercepts() {
         TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
@@ -548,6 +584,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Withdraws packet intercepts.
+     * 撤回数据包拦截
      */
     private void withdrawIntercepts() {
         TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
@@ -577,6 +614,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         public void event(MastershipEvent event) {
             if (event.type() == MastershipEvent.Type.MASTER_CHANGED) {
                 // only need new master events
+                //调用线程执行器,主要要master角色的控制器执行
                 eventExecutor.execute(() -> {
                     DeviceId deviceId = event.subject();
                     Device device = deviceService.getDevice(deviceId);
@@ -590,7 +628,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
         }
     }
 
-    //设备时间处理线程,在设备事件发生时启动
+    //设备事件处理线程,在设备事件发生时启动
     private class DeviceEventProcessor implements Runnable {
 
         DeviceEvent event;
@@ -657,7 +695,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Processes device events.
-     * 处理设备事件
+     * 处理设备事件,实现设备监听接口
      */
     private class InternalDeviceListener implements DeviceListener {
         @Override
@@ -703,7 +741,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Auxiliary task to keep device ports up to date.
-     * 辅助任务来保持设备端口最新
+     * 辅助任线程来保持设备端口最新,在enable方法中使用线程执行类,每一秒中执行一次
      */
     private final class SyncDeviceInfoTask implements Runnable {
         @Override
@@ -724,7 +762,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
 
     /**
      * Auxiliary task for pruning stale links.
-     * 修剪陈旧链接的辅助任务。
+     * 修剪陈旧链接的辅助线程。,在enable方法中使用线程执行类,每一秒中执行一次
      */
     private class LinkPrunerTask implements Runnable {
         @Override
@@ -819,6 +857,7 @@ public class LldpLinkProvider extends AbstractProvider implements ProbedLinkProv
                                  NetworkConfigEvent.Type.CONFIG_UPDATED,
                                  NetworkConfigEvent.Type.CONFIG_REMOVED);
 
+    //能够接收网络配置相关事件的实体。
     private class InternalConfigListener implements NetworkConfigListener {
 
         //重新配置禁止规则
