@@ -24,12 +24,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
 import static org.onlab.packet.LLDPOrganizationalTLV.OUI_LENGTH;
 import static org.onlab.packet.LLDPOrganizationalTLV.SUBTYPE_LENGTH;
 
 /**
  *  ONOS LLDP containing organizational TLV for ONOS device discovery.
  *  包含用于ONOS设备发现的组织TLV的ONOS LLDP。
+ *  TLV Type,Length,Value
  */
 public class ONOSLLDP extends LLDP {
 
@@ -50,6 +52,7 @@ public class ONOSLLDP extends LLDP {
     // TLV constants: type, size and subtype
     // Organizationally specific TLV also have packet offset and contents of TLV
     // header
+    //TLV常量：类型，大小和子类型.组织特定的TLV也具有包偏移量和TLV头的内容
     private static final byte CHASSIS_TLV_TYPE = 1;
     private static final byte CHASSIS_TLV_SIZE = 7;
     private static final byte CHASSIS_TLV_SUBTYPE = 4;
@@ -272,5 +275,15 @@ public class ONOSLLDP extends LLDP {
         }
         return probe;
     }
+    @Override
+    public String toString() {
+        return toStringHelper(getClass())
+                .add("chassisId", Arrays.toString(chassisId.getValue()))
+                .add("portId", Arrays.toString(portId.getValue()))
+                .add("ttl", Arrays.toString(ttl.getValue()))
+                .add("ethType", Short.toString(ethType))
+                .toString();
 
+        // TODO: need to handle optionalTLVList
+    }
 }

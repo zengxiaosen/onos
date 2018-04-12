@@ -218,6 +218,7 @@ public class LLDP extends BasePacket {
 
     /**
      * Deserializer function for LLDP packets.
+     * 用于LLDP数据包的解串器功能。
      *
      * @return deserializer function
      */
